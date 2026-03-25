@@ -80,6 +80,25 @@ async def open_case(body: dict, user: dict = Depends(get_current_user)):
     return {"item": item, "new_balance": row[0]}
 
 
+@router.post("/record_win")
+async def record_win(body: dict, user: dict = Depends(get_current_user)):
+    emoji = body.get("emoji", "🎁")
+    name = body.get("name", "Приз")
+    stars = int(body.get("stars", 0))
+    if stars < 100:
+        return {"ok": True}
+    async with aiosqlite.connect(DB_PATH) as db:
+        try:
+            await db.execute(
+                "INSERT INTO case_wins (user_id, emoji, name, stars) VALUES (?, ?, ?, ?)",
+                (user["id"], emoji, name, stars)
+            )
+            await db.commit()
+        except Exception:
+            pass
+    return {"ok": True}
+
+
 @router.get("/recent")
 async def recent_wins():
     async with aiosqlite.connect(DB_PATH) as db:
