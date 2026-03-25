@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:willowy-sfogliatella-946fa1.netlify.app)",
+      "WebFetch(domain:snazzy-crumble-63054f.netlify.app)"
+    ]
+  }
+}
