@@ -1,4 +1,5 @@
 import random
+from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException
 import aiosqlite
 from database import DB_PATH
@@ -6,9 +7,11 @@ from auth import get_current_user
 
 router = APIRouter(prefix="/pvp", tags=["pvp"])
 
+ROUND_DURATION = 180  # 3 минуты
+MAX_PLAYERS = 10
+
 
 async def get_or_create_active_round(db) -> int:
-    """Возвращает id активного раунда, создаёт новый если нет."""
     cur = await db.execute("SELECT id FROM pvp_rounds WHERE status = 'active' ORDER BY id DESC LIMIT 1")
     row = await cur.fetchone()
     if row:
@@ -18,24 +21,78 @@ async def get_or_create_active_round(db) -> int:
     return cur.lastrowid
 
 
+async def try_resolve_round(db, round_id: int) -> dict | None:
+    """Разыгрывает раунд если нужно. Возвращает результат или None."""
+    cur = await db.execute("SELECT user_id, amount FROM pvp_bets WHERE round_id = ?", (round_id,))
+    bets = await cur.fetchall()
+    if len(bets) < 2:
+        return None
+
+    total_pot = sum(b[1] for b in bets)
+    users = [b[0] for b in bets]
+    weights = [b[1] for b in bets]
+    winner_id = random.choices(users, weights=weights, k=1)[0]
+
+    await db.execute("UPDATE users SET balance = balance + ? WHERE id = ?", (total_pot, winner_id))
+    await db.execute(
+        "UPDATE pvp_rounds SET status = 'done', winner_id = ?, total_pot = ? WHERE id = ?",
+        (winner_id, total_pot, round_id)
+    )
+    await db.execute("INSERT INTO pvp_rounds (status) VALUES ('active')")
+    await db.commit()
+
+    cur = await db.execute("SELECT name FROM users WHERE id = ?", (winner_id,))
+    winner = await cur.fetchone()
+    return {"winner_id": winner_id, "winner_name": winner[0] or "Игрок", "total_pot": total_pot}
+
+
 @router.get("/lobby")
 async def get_lobby():
-    """Получить текущий активный котёл с игроками и шансами."""
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
+
+        # Добавляем колонку если не существует (миграция)
+        try:
+            await db.execute("ALTER TABLE pvp_rounds ADD COLUMN started_at TEXT")
+            await db.commit()
+        except Exception:
+            pass
+
         round_id = await get_or_create_active_round(db)
 
+        cur = await db.execute("SELECT started_at FROM pvp_rounds WHERE id = ?", (round_id,))
+        round_row = await cur.fetchone()
+        started_at = round_row["started_at"] if round_row else None
+
         cur = await db.execute(
-            """SELECT b.id, b.user_id, b.amount, u.name, u.username
-               FROM pvp_bets b
-               LEFT JOIN users u ON u.id = b.user_id
-               WHERE b.round_id = ?
-               ORDER BY b.amount DESC""",
+            """SELECT b.user_id, b.amount, u.name
+               FROM pvp_bets b LEFT JOIN users u ON u.id = b.user_id
+               WHERE b.round_id = ? ORDER BY b.amount DESC""",
             (round_id,)
         )
         bets = await cur.fetchall()
-
         total_pot = sum(b["amount"] for b in bets)
+        player_count = len(bets)
+
+        # Проверяем таймер
+        time_left = None
+        auto_resolved = None
+        if started_at and player_count >= 2:
+            started_dt = datetime.fromisoformat(started_at)
+            elapsed = (datetime.now(timezone.utc) - started_dt.replace(tzinfo=timezone.utc)).total_seconds()
+            time_left = max(0, ROUND_DURATION - int(elapsed))
+
+            if time_left == 0:
+                auto_resolved = await try_resolve_round(db, round_id)
+                if auto_resolved:
+                    return {
+                        "round_id": round_id,
+                        "players": [],
+                        "total_pot": 0,
+                        "time_left": 0,
+                        "auto_resolved": auto_resolved,
+                    }
+
         players = [
             {
                 "user_id": b["user_id"],
@@ -51,13 +108,14 @@ async def get_lobby():
         "round_id": round_id,
         "players": players,
         "total_pot": total_pot,
-        "can_draw": len(players) >= 2,
+        "time_left": time_left,
+        "player_count": player_count,
+        "max_players": MAX_PLAYERS,
     }
 
 
 @router.post("/bet")
 async def place_bet(body: dict, user: dict = Depends(get_current_user)):
-    """Поставить ставку в текущий котёл."""
     amount = int(body.get("amount", 0))
     if amount < 10:
         raise HTTPException(status_code=400, detail="Минимальная ставка — 10 звёзд")
@@ -68,70 +126,38 @@ async def place_bet(body: dict, user: dict = Depends(get_current_user)):
         db.row_factory = aiosqlite.Row
         round_id = await get_or_create_active_round(db)
 
-        # Проверяем, не ставил ли уже
-        cur = await db.execute(
-            "SELECT id FROM pvp_bets WHERE round_id = ? AND user_id = ?",
-            (round_id, user["id"])
-        )
+        cur = await db.execute("SELECT started_at FROM pvp_rounds WHERE id = ?", (round_id,))
+        round_row = await cur.fetchone()
+
+        cur = await db.execute("SELECT id FROM pvp_bets WHERE round_id = ? AND user_id = ?", (round_id, user["id"]))
         if await cur.fetchone():
             raise HTTPException(status_code=400, detail="Ты уже поставил в этом раунде")
 
+        cur = await db.execute("SELECT COUNT(*) FROM pvp_bets WHERE round_id = ?", (round_id,))
+        count = (await cur.fetchone())[0]
+        if count >= MAX_PLAYERS:
+            raise HTTPException(status_code=400, detail="Комната заполнена")
+
         await db.execute("UPDATE users SET balance = balance - ? WHERE id = ?", (amount, user["id"]))
-        await db.execute(
-            "INSERT INTO pvp_bets (round_id, user_id, amount) VALUES (?, ?, ?)",
-            (round_id, user["id"], amount)
-        )
+        await db.execute("INSERT INTO pvp_bets (round_id, user_id, amount) VALUES (?, ?, ?)", (round_id, user["id"], amount))
+
+        # Если стало 2 игрока — запускаем таймер
+        if count + 1 == 2 and not round_row["started_at"]:
+            now = datetime.now(timezone.utc).isoformat()
+            await db.execute("UPDATE pvp_rounds SET started_at = ? WHERE id = ?", (now, round_id))
+
         await db.commit()
+
+        # Если 10 игроков — авторазыгрываем
+        auto_resolved = None
+        if count + 1 >= MAX_PLAYERS:
+            auto_resolved = await try_resolve_round(db, round_id)
 
         cur = await db.execute("SELECT balance FROM users WHERE id = ?", (user["id"],))
         row = await cur.fetchone()
 
-    return {"success": True, "new_balance": row[0], "round_id": round_id}
-
-
-@router.post("/draw")
-async def draw_winner(user: dict = Depends(get_current_user)):
-    """Разыграть котёл (нужно 2+ игрока)."""
-    async with aiosqlite.connect(DB_PATH) as db:
-        db.row_factory = aiosqlite.Row
-        cur = await db.execute("SELECT id FROM pvp_rounds WHERE status = 'active' ORDER BY id DESC LIMIT 1")
-        row = await cur.fetchone()
-        if not row:
-            raise HTTPException(status_code=404, detail="Нет активного раунда")
-
-        round_id = row[0]
-
-        cur = await db.execute(
-            "SELECT user_id, amount FROM pvp_bets WHERE round_id = ?", (round_id,)
-        )
-        bets = await cur.fetchall()
-
-        if len(bets) < 2:
-            raise HTTPException(status_code=400, detail="Нужно минимум 2 игрока")
-
-        total_pot = sum(b["amount"] for b in bets)
-
-        # Взвешенный случайный выбор
-        users = [b["user_id"] for b in bets]
-        weights = [b["amount"] for b in bets]
-        winner_id = random.choices(users, weights=weights, k=1)[0]
-
-        # Начисляем выигрыш
-        await db.execute("UPDATE users SET balance = balance + ? WHERE id = ?", (total_pot, winner_id))
-        await db.execute(
-            "UPDATE pvp_rounds SET status = 'done', winner_id = ?, total_pot = ? WHERE id = ?",
-            (winner_id, total_pot, round_id)
-        )
-        # Создаём новый раунд
-        await db.execute("INSERT INTO pvp_rounds (status) VALUES ('active')")
-        await db.commit()
-
-        cur = await db.execute("SELECT name FROM users WHERE id = ?", (winner_id,))
-        winner = await cur.fetchone()
-
     return {
-        "winner_id": winner_id,
-        "winner_name": winner[0] or "Игрок",
-        "total_pot": total_pot,
-        "i_won": winner_id == user["id"],
+        "success": True,
+        "new_balance": row[0],
+        "auto_resolved": auto_resolved,
     }

@@ -39,6 +39,7 @@ async def init_db():
                 status     TEXT DEFAULT 'active',
                 winner_id  INTEGER,
                 total_pot  INTEGER DEFAULT 0,
+                started_at TEXT,
                 created_at TEXT DEFAULT (datetime('now'))
             );
 
