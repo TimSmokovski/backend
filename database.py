@@ -34,6 +34,15 @@ async def init_db():
                 created_at  TEXT DEFAULT (datetime('now'))
             );
 
+            CREATE TABLE IF NOT EXISTS case_wins (
+                id         INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id    INTEGER NOT NULL,
+                emoji      TEXT NOT NULL,
+                name       TEXT NOT NULL,
+                stars      INTEGER NOT NULL,
+                created_at TEXT DEFAULT (datetime('now'))
+            );
+
             CREATE TABLE IF NOT EXISTS pvp_rounds (
                 id         INTEGER PRIMARY KEY AUTOINCREMENT,
                 status     TEXT DEFAULT 'active',

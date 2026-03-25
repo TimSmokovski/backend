@@ -67,8 +67,28 @@ async def open_case(body: dict, user: dict = Depends(get_current_user)):
                 "UPDATE users SET balance = balance - ? + ? WHERE id = ?",
                 (cost, item["stars"], user["id"]),
             )
+        # Сохраняем в историю если 100+ звёзд
+        if item["stars"] >= 100:
+            await db.execute(
+                "INSERT INTO case_wins (user_id, emoji, name, stars) VALUES (?, ?, ?, ?)",
+                (user["id"], item["emoji"], item["name"], item["stars"])
+            )
         await db.commit()
         cur = await db.execute("SELECT balance FROM users WHERE id = ?", (user["id"],))
         row = await cur.fetchone()
 
     return {"item": item, "new_balance": row[0]}
+
+
+@router.get("/recent")
+async def recent_wins():
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        try:
+            cur = await db.execute(
+                "SELECT emoji, stars FROM case_wins ORDER BY id DESC LIMIT 30"
+            )
+            rows = await cur.fetchall()
+        except Exception:
+            return []
+    return [{"emoji": r["emoji"], "stars": r["stars"]} for r in rows]
