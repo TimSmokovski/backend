@@ -86,9 +86,11 @@ async def recent_wins():
         db.row_factory = aiosqlite.Row
         try:
             cur = await db.execute(
-                "SELECT emoji, stars FROM case_wins ORDER BY id DESC LIMIT 30"
+                """SELECT w.emoji, w.stars, u.name
+                   FROM case_wins w LEFT JOIN users u ON u.id = w.user_id
+                   ORDER BY w.id DESC LIMIT 30"""
             )
             rows = await cur.fetchall()
         except Exception:
             return []
-    return [{"emoji": r["emoji"], "stars": r["stars"]} for r in rows]
+    return [{"emoji": r["emoji"], "stars": r["stars"], "name": r["name"] or "Игрок"} for r in rows]
