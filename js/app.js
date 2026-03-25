@@ -1,0 +1,161 @@
+// ===== MAIN APP =====
+const tg = window.Telegram?.WebApp;
+
+window.appState = {
+  id: null,
+  name: 'Игрок',
+  avatar: '?',
+  balance: 5000,
+};
+
+// Init Telegram Web App
+if (tg) {
+  tg.ready();
+  tg.expand();
+  tg.setHeaderColor('#0e0e1a');
+  tg.setBackgroundColor('#0e0e1a');
+
+  const user = tg.initDataUnsafe?.user;
+  if (user) {
+    window.appState.id = user.id;
+    window.appState.name = user.first_name || 'Игрок';
+    window.appState.avatar = (user.first_name || 'И')[0].toUpperCase();
+  }
+}
+
+// ===== NAVIGATION =====
+const PAGE_RENDERERS = {
+  cases:    renderCasesPage,
+  contests: renderContestsPage,
+  tasks:    renderTasksPage,
+  leaders:  renderLeadersPage,
+  profile:  renderProfilePage,
+};
+
+function navigateTo(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+
+  const pageEl = document.getElementById(`page-${page}`);
+  const navBtn = document.querySelector(`.nav-btn[data-page="${page}"]`);
+  if (pageEl) pageEl.classList.remove('hidden');
+  if (navBtn) navBtn.classList.add('active');
+
+  if (PAGE_RENDERERS[page]) PAGE_RENDERERS[page]();
+
+  if (tg?.HapticFeedback) tg.HapticFeedback.selectionChanged();
+}
+
+document.querySelectorAll('.nav-btn').forEach(btn => {
+  btn.addEventListener('click', () => navigateTo(btn.dataset.page));
+});
+
+// ===== MODAL =====
+function showModal(html) {
+  const overlay = document.getElementById('modal-overlay');
+  const content = document.getElementById('modal-content');
+  content.innerHTML = html;
+  overlay.classList.remove('hidden');
+
+  overlay.onclick = (e) => {
+    if (e.target === overlay) hideModal();
+  };
+}
+
+function hideModal() {
+  const overlay = document.getElementById('modal-overlay');
+  overlay.classList.add('hidden');
+  // Стоп краш если открыт
+  if (typeof crashActive !== 'undefined') {
+    crashActive = false;
+    if (crashInterval) clearInterval(crashInterval);
+  }
+}
+
+// ===== WIN SCREEN =====
+function showWin(emoji, title, sub) {
+  if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+
+  const overlay = document.createElement('div');
+  overlay.className = 'win-overlay';
+  overlay.innerHTML = `
+    <div class="win-emoji">${emoji}</div>
+    <div class="win-text">${title}</div>
+    <div class="win-sub">${sub}</div>
+    <button class="win-close" onclick="this.closest('.win-overlay').remove()">Забрать</button>
+  `;
+
+  // Конфетти
+  const colors = ['#f5c842','#4d6ef5','#e91e8c','#2ecc71','#e67e22','#9b59b6'];
+  for (let i = 0; i < 30; i++) {
+    const c = document.createElement('div');
+    c.className = 'confetti';
+    c.style.cssText = `
+      left:${Math.random()*100}%;
+      background:${colors[Math.floor(Math.random()*colors.length)]};
+      animation-delay:${Math.random()*0.5}s;
+      animation-duration:${1 + Math.random()}s;
+      width:${6+Math.random()*8}px;
+      height:${6+Math.random()*8}px;
+    `;
+    overlay.appendChild(c);
+  }
+
+  document.body.appendChild(overlay);
+  setTimeout(() => overlay.remove(), 5000);
+}
+
+// ===== TOAST =====
+function showToast(msg) {
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2600);
+}
+
+// ===== BALANCE =====
+function updateBalance() {
+  const el = document.getElementById('user-balance');
+  if (el) el.textContent = (window.appState.balance || 0).toLocaleString();
+}
+
+// ===== INIT =====
+function showApp() {
+  document.getElementById('loader').classList.add('hidden');
+  document.getElementById('main').classList.remove('hidden');
+}
+
+async function init() {
+  // Гарантированно показываем приложение через 1.5 сек
+  const showTimer = setTimeout(showApp, 1500);
+
+  try {
+    document.getElementById('user-name').textContent = window.appState.name;
+    document.getElementById('user-avatar').textContent = window.appState.avatar || '?';
+    updateBalance();
+    renderCasesPage();
+  } catch (e) {
+    console.error('Render error:', e);
+  }
+
+  // Показываем сразу после рендера
+  clearTimeout(showTimer);
+  showApp();
+
+  // Загружаем реальные данные с API в фоне
+  try {
+    const userData = await Promise.race([
+      API.getMe(),
+      new Promise(r => setTimeout(() => r(null), 3000)),
+    ]);
+    if (userData) {
+      window.appState = { ...window.appState, ...userData };
+      document.getElementById('user-name').textContent = window.appState.name;
+      document.getElementById('user-avatar').textContent = window.appState.avatar || window.appState.name?.[0] || '?';
+      updateBalance();
+    }
+  } catch (e) {}
+}
+
+init();
