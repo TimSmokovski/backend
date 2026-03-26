@@ -1,6 +1,4 @@
 // ===== MAIN APP =====
-const tg = window.Telegram?.WebApp;
-
 window.appState = {
   id: null,
   name: 'Игрок',
@@ -65,11 +63,19 @@ function showModal(html) {
 function hideModal() {
   const overlay = document.getElementById('modal-overlay');
   overlay.classList.add('hidden');
-  // Стоп краш если открыт
   if (typeof crashActive !== 'undefined') {
     crashActive = false;
     if (crashInterval) clearInterval(crashInterval);
   }
+  if (typeof pvpRefreshTimer !== 'undefined' && pvpRefreshTimer) {
+    clearInterval(pvpRefreshTimer);
+    pvpRefreshTimer = null;
+  }
+  if (typeof pvpTickTimer !== 'undefined' && pvpTickTimer) {
+    clearInterval(pvpTickTimer);
+    pvpTickTimer = null;
+  }
+  if (typeof pvpLocalTimeLeft !== 'undefined') pvpLocalTimeLeft = null;
 }
 
 // ===== WIN SCREEN =====
@@ -135,8 +141,10 @@ async function init() {
     document.getElementById('user-avatar').textContent = window.appState.avatar || '?';
     updateBalance();
     renderCasesPage();
+    initLiveBar();
   } catch (e) {
     console.error('Render error:', e);
+    document.getElementById('page-cases').innerHTML = `<div style="color:red;padding:20px;font-size:12px">Ошибка: ${e.message}</div>`;
   }
 
   // Показываем сразу после рендера
