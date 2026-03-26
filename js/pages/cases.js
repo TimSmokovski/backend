@@ -188,7 +188,7 @@ function pvpTick() {
   const fillEl = document.querySelector('.pvp-timer-fill');
   const timerEl = document.querySelector('.pvp-timer');
   if (valEl) valEl.textContent = pvpFormatTime(pvpLocalTimeLeft);
-  if (fillEl) fillEl.style.width = `${(pvpLocalTimeLeft / 180) * 100}%`;
+  if (fillEl) fillEl.style.width = `${(pvpLocalTimeLeft / 60) * 100}%`;
   if (timerEl) {
     if (pvpLocalTimeLeft < 30) timerEl.classList.add('urgent');
     else timerEl.classList.remove('urgent');
@@ -260,7 +260,7 @@ async function pvpRefreshLobby() {
   // Статус таймера
   let timerHtml = '';
   if (timeLeft !== null && timeLeft !== undefined) {
-    const pct = (timeLeft / 180) * 100;
+    const pct = (timeLeft / 60) * 100;
     const urgent = timeLeft < 30;
     timerHtml = `
       <div class="pvp-timer ${urgent ? 'urgent' : ''}">
