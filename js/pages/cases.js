@@ -158,6 +158,8 @@ function renderCasesPage() {
 }
 
 // ===== PvP =====
+const PVP_COLORS = ['#e74c3c','#3498db','#2ecc71','#f39c12','#9b59b6','#1abc9c','#ff6b35','#e91e63','#00bcd4','#c0ca33'];
+
 let pvpBetInput = 100;
 let pvpRefreshTimer = null;
 let pvpTickTimer = null;
@@ -199,10 +201,34 @@ function pvpFormatTime(seconds) {
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
+function buildPvpWheel(players) {
+  let gradientParts = [];
+  let cumulative = 0;
+  if (players && players.length > 0) {
+    players.forEach((p, i) => {
+      const color = PVP_COLORS[i % PVP_COLORS.length];
+      const end = Math.min(100, cumulative + parseFloat(p.chance));
+      gradientParts.push(`${color} ${cumulative.toFixed(2)}% ${end.toFixed(2)}%`);
+      cumulative = end;
+    });
+    if (cumulative < 99.9) {
+      gradientParts.push(`rgba(255,255,255,0.06) ${cumulative.toFixed(2)}% 100%`);
+    }
+  }
+  const style = gradientParts.length
+    ? `background:conic-gradient(from -90deg, ${gradientParts.join(', ')})`
+    : '';
+  return `
+    <div class="pvp-wheel-wrap">
+      <div class="pvp-wheel${gradientParts.length ? '' : ' pvp-wheel-empty'}"${style ? ` style="${style}"` : ''}></div>
+      <div class="pvp-wheel-center">🏆</div>
+    </div>`;
+}
+
 async function pvpRefreshLobby() {
   const lobby = await API.pvpLobby();
   const content = document.getElementById('pvp-lobby-content');
-  if (!content) { clearInterval(pvpRefreshTimer); return; }
+  if (!content) { clearInterval(pvpRefreshTimer); clearInterval(pvpTickTimer); return; }
 
   if (!lobby) {
     content.innerHTML = `<div class="pvp-loading">Ошибка соединения</div>`;
@@ -247,34 +273,39 @@ async function pvpRefreshLobby() {
   }
 
   content.innerHTML = `
-    <div class="pvp-pot">
-      <div class="pvp-pot-label">Общий котёл</div>
-      <div class="pvp-pot-val">⭐ ${lobby.total_pot.toLocaleString()}</div>
-      <div class="pvp-pot-players">${playerCount} / ${lobby.max_players || 10} игроков</div>
+    <div class="pvp-cauldron-card">
+      <div class="pvp-cauldron-label">🔥 КОТЁЛ</div>
+      <div class="pvp-cauldron-val">⭐ ${lobby.total_pot.toLocaleString()}</div>
+      <div class="pvp-cauldron-players">${playerCount} / ${lobby.max_players || 10} игроков</div>
     </div>
 
-    ${timerHtml}
+    ${buildPvpWheel(lobby.players)}
 
     <div class="pvp-players-list">
       ${playerCount === 0
         ? `<div class="pvp-empty">Пока никого нет. Будь первым!</div>`
-        : lobby.players.map(p => `
-          <div class="pvp-player-row ${p.user_id == myId ? 'me' : ''}">
-            <div class="pvp-room-avatar">${p.avatar}</div>
-            <div class="pvp-player-info">
-              <div class="pvp-room-name">${p.name}${p.user_id == myId ? ' (ты)' : ''}</div>
-              <div class="pvp-chance-bar-wrap">
-                <div class="pvp-chance-bar" style="width:${p.chance}%"></div>
-              </div>
-            </div>
-            <div class="pvp-player-right">
-              <div class="pvp-room-bet">⭐ ${p.amount.toLocaleString()}</div>
-              <div class="pvp-chance-label">${p.chance}%</div>
-            </div>
-          </div>
-        `).join('')
+        : lobby.players.map((p, i) => {
+            const color = PVP_COLORS[i % PVP_COLORS.length];
+            return `
+              <div class="pvp-player-row ${p.user_id == myId ? 'me' : ''}" style="--player-color:${color}">
+                <div class="pvp-player-color-bar"></div>
+                <div class="pvp-room-avatar" style="background:linear-gradient(135deg,${color},${color}99)">${p.avatar}</div>
+                <div class="pvp-player-info">
+                  <div class="pvp-room-name">${p.name}${p.user_id == myId ? ' <span class="pvp-me-tag">ты</span>' : ''}</div>
+                  <div class="pvp-chance-bar-wrap">
+                    <div class="pvp-chance-bar" style="width:${p.chance}%;background:${color}"></div>
+                  </div>
+                </div>
+                <div class="pvp-player-right">
+                  <div class="pvp-room-bet">⭐ ${p.amount.toLocaleString()}</div>
+                  <div class="pvp-chance-label" style="color:${color}">${p.chance}%</div>
+                </div>
+              </div>`;
+          }).join('')
       }
     </div>
+
+    ${timerHtml}
 
     ${!iAlreadyBet ? `
       <div class="pvp-bet-label">Твоя ставка</div>
