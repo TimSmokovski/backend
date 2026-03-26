@@ -72,12 +72,23 @@
     <div id="modal-content" class="modal-content"></div>
   </div>
 
-  <script src="js/api.js"></script>
-  <script src="js/pages/cases.js"></script>
-  <script src="js/pages/contests.js"></script>
-  <script src="js/pages/tasks.js"></script>
-  <script src="js/pages/leaders.js"></script>
-  <script src="js/pages/profile.js"></script>
-  <script src="js/app.js"></script>
+  <script src="js/api.js?v=2"></script>
+  <script src="js/pages/cases.js?v=2"></script>
+  <script src="js/pages/contests.js?v=2"></script>
+  <script src="js/pages/tasks.js?v=2"></script>
+  <script src="js/pages/leaders.js?v=2"></script>
+  <script src="js/pages/profile.js?v=2"></script>
+  <script src="js/app.js?v=2"></script>
+  <script>
+    // Fallback: если JS упал — всё равно показать приложение через 3 сек
+    setTimeout(function() {
+      var loader = document.getElementById('loader');
+      var main = document.getElementById('main');
+      if (loader && !loader.classList.contains('hidden')) {
+        loader.classList.add('hidden');
+        if (main) main.classList.remove('hidden');
+      }
+    }, 3000);
+  </script>
 </body>
 </html>

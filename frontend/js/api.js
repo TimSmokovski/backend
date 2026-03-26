@@ -1,7 +1,7 @@
 // ===== API CLIENT =====
 const API_BASE = window.location.hostname === 'localhost'
   ? 'http://localhost:8000'
-  : '/api'; // замени на свой домен после деплоя
+  : 'https://backend-production-128d.up.railway.app';
 
 const tg = window.Telegram?.WebApp;
 
@@ -16,6 +16,10 @@ async function apiCall(method, path, data = null) {
   if (data) opts.body = JSON.stringify(data);
   try {
     const res = await fetch(API_BASE + path, opts);
+    if (res.status === 429 || res.status === 400) {
+      const data = await res.json();
+      return { __error: true, detail: data.detail || 'Ошибка' };
+    }
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return await res.json();
   } catch (e) {
@@ -33,9 +37,11 @@ const API = {
   completeTask: (id)            => apiCall('POST', `/tasks/${id}/complete`),
   getReferral: ()               => apiCall('GET', '/referral'),
   openCase: (type)              => apiCall('POST', '/cases/open', { type }),
-  pvpCreate: (bet)              => apiCall('POST', '/pvp/create', { bet }),
-  pvpJoin: (roomId)             => apiCall('POST', `/pvp/${roomId}/join`),
-  pvpRooms: ()                  => apiCall('GET', '/pvp/rooms'),
+  recentWins: ()                => apiCall('GET', '/cases/recent'),
+  recordWin: (emoji, name, stars) => apiCall('POST', '/cases/record_win', { emoji, name, stars }),
+  pvpLobby: ()                  => apiCall('GET', '/pvp/lobby'),
+  pvpBet: (amount)              => apiCall('POST', '/pvp/bet', { amount }),
+  pvpDraw: ()                   => apiCall('POST', '/pvp/draw'),
   spinRoulette: (bet, section)  => apiCall('POST', '/roulette/spin', { bet, section }),
   crashBet: (amount)            => apiCall('POST', '/crash/bet', { amount }),
   crashCashout: ()              => apiCall('POST', '/crash/cashout'),

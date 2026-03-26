@@ -21,7 +21,18 @@ ITEMS = [
     {"emoji": "💎", "name": "Алмаз",    "stars": 7500, "rarity": "legendary", "weight": 0.15},
     {"emoji": "🐉", "name": "Дракон",   "stars": 9999, "rarity": "legendary", "weight": 0.05},
 ]
-FREE_ITEMS = [i for i in ITEMS if i["rarity"] in ("common", "uncommon")]
+FREE_ITEMS = [
+    {"emoji": "⭐", "name": "Звезда",   "stars": 5,   "rarity": "common",   "weight": 30},
+    {"emoji": "🌊", "name": "Волна",    "stars": 10,  "rarity": "common",   "weight": 25},
+    {"emoji": "🍀", "name": "Клевер",   "stars": 15,  "rarity": "common",   "weight": 20},
+    {"emoji": "🎈", "name": "Шарик",    "stars": 20,  "rarity": "common",   "weight": 15},
+    {"emoji": "🦊", "name": "Лиса",     "stars": 30,  "rarity": "uncommon", "weight": 10},
+    {"emoji": "⚡", "name": "Молния",   "stars": 40,  "rarity": "uncommon", "weight": 8},
+    {"emoji": "🎃", "name": "Тыква",    "stars": 50,  "rarity": "uncommon", "weight": 6},
+    {"emoji": "🧪", "name": "Зелье",    "stars": 75,  "rarity": "rare",     "weight": 3},
+    {"emoji": "👾", "name": "Пришелец", "stars": 90,  "rarity": "rare",     "weight": 2},
+    {"emoji": "🎒", "name": "Рюкзак",   "stars": 100, "rarity": "epic",     "weight": 1},
+]
 
 
 def weighted_choice(items):
@@ -56,8 +67,49 @@ async def open_case(body: dict, user: dict = Depends(get_current_user)):
                 "UPDATE users SET balance = balance - ? + ? WHERE id = ?",
                 (cost, item["stars"], user["id"]),
             )
+        # Сохраняем в историю если 100+ звёзд
+        if item["stars"] >= 100:
+            await db.execute(
+                "INSERT INTO case_wins (user_id, emoji, name, stars) VALUES (?, ?, ?, ?)",
+                (user["id"], item["emoji"], item["name"], item["stars"])
+            )
         await db.commit()
         cur = await db.execute("SELECT balance FROM users WHERE id = ?", (user["id"],))
         row = await cur.fetchone()
 
     return {"item": item, "new_balance": row[0]}
+
+
+@router.post("/record_win")
+async def record_win(body: dict, user: dict = Depends(get_current_user)):
+    emoji = body.get("emoji", "🎁")
+    name = body.get("name", "Приз")
+    stars = int(body.get("stars", 0))
+    if stars < 100:
+        return {"ok": True}
+    async with aiosqlite.connect(DB_PATH) as db:
+        try:
+            await db.execute(
+                "INSERT INTO case_wins (user_id, emoji, name, stars) VALUES (?, ?, ?, ?)",
+                (user["id"], emoji, name, stars)
+            )
+            await db.commit()
+        except Exception:
+            pass
+    return {"ok": True}
+
+
+@router.get("/recent")
+async def recent_wins():
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        try:
+            cur = await db.execute(
+                """SELECT w.emoji, w.stars, u.name
+                   FROM case_wins w LEFT JOIN users u ON u.id = w.user_id
+                   ORDER BY w.id DESC LIMIT 30"""
+            )
+            rows = await cur.fetchall()
+        except Exception:
+            return []
+    return [{"emoji": r["emoji"], "stars": r["stars"], "name": r["name"] or "Игрок"} for r in rows]
