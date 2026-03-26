@@ -32,7 +32,6 @@ async function initLiveBar() {
   if (wins && wins.length) {
     liveItems = wins.slice(0, 15).reverse();
     renderLiveBar();
-    renderTopWinners(wins);
   }
   setInterval(pollLiveBar, 6000);
 }
@@ -71,7 +70,6 @@ async function pollLiveBar() {
     }
   }
 
-  renderTopWinners(wins);
 }
 
 function renderLiveBar() {
@@ -86,20 +84,6 @@ function renderLiveBar() {
   `).join('');
 }
 
-function renderTopWinners(wins) {
-  const el = document.getElementById('top-winners');
-  if (!el || !wins.length) return;
-  // Топ 3 по звёздам
-  const top = [...wins].sort((a, b) => b.stars - a.stars).slice(0, 3);
-  el.innerHTML = top.map((w, i) => `
-    <div class="top-winner-item">
-      <span class="top-winner-rank">${['🥇','🥈','🥉'][i]}</span>
-      <span class="top-winner-emoji">${w.emoji}</span>
-      <span class="top-winner-name">${w.name}</span>
-      <span class="top-winner-stars">⭐ ${w.stars}</span>
-    </div>
-  `).join('');
-}
 
 function renderCasesPage() {
   const page = document.getElementById('page-cases');
@@ -110,7 +94,6 @@ function renderCasesPage() {
         <div class="live-bar-items" id="live-bar-items"></div>
       </div>
     </div>
-    <div class="top-winners-block" id="top-winners"></div>
     <div class="modes-list">
       <div class="mode-card pvp" onclick="openPvp()">
         <div class="mode-icon-wrap pvp-icon">⚔️</div>
@@ -770,7 +753,7 @@ function openUpgrade() {
           <span>${toItem.emoji}</span>
           <span class="upgrade-card-val">⭐ ${toItem.stars}</span>
         </div>
-        <div class="upgrade-card-label" style="margin-top:6px">Цель</div>
+        <div class="upgrade-card-label" style="margin-top:6px">💰 Профит</div>
       </div>
     </div>
     <div class="upgrade-chance">
