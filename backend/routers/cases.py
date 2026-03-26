@@ -22,15 +22,13 @@ ITEMS = [
     {"emoji": "🐉", "name": "Дракон",   "stars": 9999, "rarity": "legendary", "weight": 0.05},
 ]
 FREE_ITEMS = [
-    {"emoji": "⭐", "name": "Звезда",   "stars": 5,   "rarity": "common",   "weight": 30},
-    {"emoji": "🌊", "name": "Волна",    "stars": 10,  "rarity": "common",   "weight": 25},
-    {"emoji": "🍀", "name": "Клевер",   "stars": 15,  "rarity": "common",   "weight": 20},
-    {"emoji": "🎈", "name": "Шарик",    "stars": 20,  "rarity": "common",   "weight": 15},
-    {"emoji": "🦊", "name": "Лиса",     "stars": 30,  "rarity": "uncommon", "weight": 10},
-    {"emoji": "⚡", "name": "Молния",   "stars": 40,  "rarity": "uncommon", "weight": 8},
-    {"emoji": "🎃", "name": "Тыква",    "stars": 50,  "rarity": "uncommon", "weight": 6},
-    {"emoji": "🧪", "name": "Зелье",    "stars": 75,  "rarity": "rare",     "weight": 3},
-    {"emoji": "👾", "name": "Пришелец", "stars": 90,  "rarity": "rare",     "weight": 2},
+    {"emoji": "⭐", "name": "Звезда",   "stars": 1,   "rarity": "common",   "weight": 196},
+    {"emoji": "🌊", "name": "Волна",    "stars": 2,   "rarity": "common",   "weight": 195},
+    {"emoji": "🍀", "name": "Клевер",   "stars": 4,   "rarity": "common",   "weight": 194},
+    {"emoji": "🎈", "name": "Шарик",    "stars": 5,   "rarity": "common",   "weight": 194},
+    {"emoji": "⚡", "name": "Молния",   "stars": 10,  "rarity": "uncommon", "weight": 150},
+    {"emoji": "🎃", "name": "Тыква",    "stars": 20,  "rarity": "uncommon", "weight": 50},
+    {"emoji": "🦊", "name": "Лиса",     "stars": 50,  "rarity": "rare",     "weight": 20},
     {"emoji": "🎒", "name": "Рюкзак",   "stars": 100, "rarity": "epic",     "weight": 1},
 ]
 
