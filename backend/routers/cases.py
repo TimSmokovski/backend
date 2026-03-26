@@ -22,6 +22,7 @@ ITEMS = [
     {"emoji": "🐉", "name": "Дракон",   "stars": 9999, "rarity": "legendary", "weight": 0.05},
 ]
 FREE_ITEMS = [
+    {"emoji": "💨", "name": "Ничего",   "stars": 0,   "rarity": "common",   "weight": 250},
     {"emoji": "⭐", "name": "Звезда",   "stars": 1,   "rarity": "common",   "weight": 196},
     {"emoji": "🌊", "name": "Волна",    "stars": 2,   "rarity": "common",   "weight": 195},
     {"emoji": "🍀", "name": "Клевер",   "stars": 4,   "rarity": "common",   "weight": 194},
