@@ -352,7 +352,7 @@ html, body { height: 100%; overflow: hidden; font-family: 'Inter', sans-serif; b
 .pvp-cauldron-card {
   background: linear-gradient(135deg, rgba(230,126,34,0.18), rgba(211,84,0,0.08));
   border: 1px solid rgba(230,126,34,0.35);
-  border-radius: var(--radius); padding: 16px; text-align: center; margin-bottom: 12px;
+  border-radius: var(--radius); padding: 10px 16px; text-align: center; margin-bottom: 10px;
   position: relative; overflow: hidden;
 }
 .pvp-cauldron-card::after {
@@ -360,38 +360,38 @@ html, body { height: 100%; overflow: hidden; font-family: 'Inter', sans-serif; b
   background: linear-gradient(90deg, transparent, rgba(230,126,34,0.7), transparent);
 }
 .pvp-cauldron-label {
-  font-size: 11px; font-weight: 700; letter-spacing: 2px;
-  color: #e67e22; text-transform: uppercase; margin-bottom: 4px;
+  font-size: 10px; font-weight: 700; letter-spacing: 2px;
+  color: #e67e22; text-transform: uppercase; margin-bottom: 2px;
 }
-.pvp-cauldron-val { font-size: 36px; font-weight: 900; letter-spacing: -1px; }
-.pvp-cauldron-players { font-size: 12px; color: var(--text2); margin-top: 4px; }
+.pvp-cauldron-val { font-size: 28px; font-weight: 900; letter-spacing: -1px; }
+.pvp-cauldron-players { font-size: 11px; color: var(--text2); margin-top: 2px; }
 
 .pvp-wheel-wrap {
-  position: relative; width: 168px; height: 168px;
-  margin: 0 auto 16px; flex-shrink: 0;
+  position: relative; width: 120px; height: 120px;
+  margin: 0 auto 12px; flex-shrink: 0;
 }
 .pvp-wheel {
-  width: 168px; height: 168px; border-radius: 50%;
-  box-shadow: 0 0 28px rgba(230,126,34,0.22), 0 0 0 3px rgba(255,255,255,0.06);
+  width: 120px; height: 120px; border-radius: 50%;
+  box-shadow: 0 0 20px rgba(230,126,34,0.22), 0 0 0 3px rgba(255,255,255,0.06);
   transition: background 0.6s ease;
 }
 .pvp-wheel-empty { background: var(--bg3); }
 .pvp-wheel-center {
   position: absolute; top: 50%; left: 50%;
   transform: translate(-50%, -50%);
-  width: 58px; height: 58px;
+  width: 42px; height: 42px;
   background: var(--bg1); border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
-  font-size: 24px;
+  font-size: 18px;
   box-shadow: 0 0 0 2px rgba(255,255,255,0.08), 0 2px 14px rgba(0,0,0,0.55);
 }
 
-.pvp-players-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
-.pvp-empty { text-align: center; color: var(--text3); padding: 20px; font-size: 13px; }
+.pvp-players-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
+.pvp-empty { text-align: center; color: var(--text3); padding: 12px; font-size: 13px; }
 
 .pvp-player-row {
   display: flex; align-items: center; gap: 10px;
-  background: var(--bg3); border-radius: var(--radius-sm); padding: 10px 12px;
+  background: var(--bg3); border-radius: var(--radius-sm); padding: 7px 10px;
   border: 1px solid transparent; overflow: hidden;
 }
 .pvp-player-row.me { border-color: var(--player-color, rgba(77,110,245,0.4)); background: rgba(77,110,245,0.06); }
