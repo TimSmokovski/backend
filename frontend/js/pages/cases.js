@@ -785,42 +785,103 @@ let crashMyBet = 100;
 let crashRoundId = -1;
 let crashInRound = false;
 
-const CRASH_ART_WAIT = [
-  '      *      ',
-  '     /|\\    ',
-  '    / | \\   ',
-  '   /  |  \\  ',
-  '  |  ___  |  ',
-  '  | |   | |  ',
-  '  | |   | |  ',
-  '  | |___| |  ',
-  '   \\_____/   ',
-  '     | |     ',
-  '    [===]    ',
-].join('\n');
+function _crashRocketHTML() {
+  return `
+    <svg class="crash-rocket-svg" viewBox="0 0 80 200" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="cr-body" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#1e3a8a"/>
+          <stop offset="40%" stop-color="#4d6ef5"/>
+          <stop offset="60%" stop-color="#4d6ef5"/>
+          <stop offset="100%" stop-color="#1e3a8a"/>
+        </linearGradient>
+        <linearGradient id="cr-nose" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#fb923c"/>
+          <stop offset="100%" stop-color="#dc2626"/>
+        </linearGradient>
+        <radialGradient id="cr-win" cx="35%" cy="30%">
+          <stop offset="0%" stop-color="#93c5fd"/>
+          <stop offset="55%" stop-color="#1d4ed8"/>
+          <stop offset="100%" stop-color="#0a1535"/>
+        </radialGradient>
+        <linearGradient id="cr-fl1" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#f59e0b"/>
+          <stop offset="55%" stop-color="#ef4444"/>
+          <stop offset="100%" stop-color="rgba(239,68,68,0)"/>
+        </linearGradient>
+        <linearGradient id="cr-fl2" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#ffffff"/>
+          <stop offset="45%" stop-color="#fcd34d"/>
+          <stop offset="100%" stop-color="rgba(252,211,77,0)"/>
+        </linearGradient>
+      </defs>
 
-const CRASH_ART_FLY = [
-  '      *      ',
-  '     /|\\    ',
-  '    / | \\   ',
-  '   /  |  \\  ',
-  '  |  ___  |  ',
-  '  | |   | |  ',
-  '  | |___| |  ',
-  '   \\_____/   ',
-  '    /||\\     ',
-  '   //||\\\\  ',
-  '  ///||\\\\\\ ',
-  '    ~~~~~    ',
-].join('\n');
+      <!-- Flames -->
+      <g class="cr-flames">
+        <ellipse class="cr-fl-outer" cx="40" cy="177" rx="14" ry="25" fill="url(#cr-fl1)"/>
+        <ellipse class="cr-fl-inner" cx="40" cy="170" rx="7"  ry="15" fill="url(#cr-fl2)"/>
+      </g>
 
-const CRASH_ART_BOOM = [
-  '  * . * . * ',
-  ' . * КРАШ * .',
-  '  * . * . * ',
-  ' . *  !!  * .',
-  '  * . * . * ',
-].join('\n');
+      <!-- Left fin -->
+      <path d="M21 128 L3 157 L21 149 Z" fill="#1e3a8a"/>
+      <path d="M21 128 L5 154 L21 147 Z" fill="#2d50b0" opacity="0.5"/>
+
+      <!-- Right fin -->
+      <path d="M59 128 L77 157 L59 149 Z" fill="#1e3a8a"/>
+      <path d="M59 128 L75 154 L59 147 Z" fill="#2d50b0" opacity="0.5"/>
+
+      <!-- Body -->
+      <rect x="21" y="65" width="38" height="90" rx="6" fill="url(#cr-body)"/>
+      <!-- Body shine -->
+      <rect x="23" y="67" width="7" height="86" rx="3" fill="rgba(255,255,255,0.07)"/>
+
+      <!-- Nose cone -->
+      <path d="M40 10 C29 26,21 46,21 65 L59 65 C59 46,51 26,40 10 Z" fill="url(#cr-nose)"/>
+      <!-- Nose shine -->
+      <path d="M40 12 C35 26,30 42,29 62 C33 52,38 28,40 12 Z" fill="rgba(255,255,255,0.22)"/>
+
+      <!-- Window ring -->
+      <circle cx="40" cy="98" r="13" fill="#0f172a" stroke="#4d6ef5" stroke-width="2.5"/>
+      <!-- Window glass -->
+      <circle cx="40" cy="98" r="10" fill="url(#cr-win)"/>
+      <!-- Window glare -->
+      <ellipse cx="35.5" cy="93.5" rx="3.5" ry="2.5" fill="rgba(255,255,255,0.38)" transform="rotate(-25 35.5 93.5)"/>
+
+      <!-- Horizontal bands -->
+      <rect x="21" y="117" width="38" height="2" rx="1" fill="rgba(255,255,255,0.10)"/>
+      <rect x="21" y="131" width="38" height="2" rx="1" fill="rgba(255,255,255,0.08)"/>
+
+      <!-- Rivets -->
+      <circle cx="27" cy="74" r="2" fill="rgba(255,255,255,0.18)"/>
+      <circle cx="53" cy="74" r="2" fill="rgba(255,255,255,0.18)"/>
+      <circle cx="27" cy="146" r="2" fill="rgba(255,255,255,0.18)"/>
+      <circle cx="53" cy="146" r="2" fill="rgba(255,255,255,0.18)"/>
+
+      <!-- Nozzle -->
+      <path d="M27 152 L53 152 L56 163 L24 163 Z" fill="#111827"/>
+      <path d="M31 158 L49 158 L51 163 L29 163 Z" fill="#1e2840"/>
+      <line x1="27" y1="152" x2="53" y2="152" stroke="#4d6ef5" stroke-width="1.5" opacity="0.4"/>
+    </svg>
+
+    <!-- Explosion (shown on crash) -->
+    <div class="cr-explosion" id="cr-explosion">
+      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+        <g stroke-linecap="round" opacity="0.9">
+          <line x1="50" y1="50" x2="50" y2="7"  stroke="#f59e0b" stroke-width="5"/>
+          <line x1="50" y1="50" x2="83" y2="17" stroke="#ef4444" stroke-width="4"/>
+          <line x1="50" y1="50" x2="93" y2="50" stroke="#f59e0b" stroke-width="5"/>
+          <line x1="50" y1="50" x2="83" y2="83" stroke="#ef4444" stroke-width="4"/>
+          <line x1="50" y1="50" x2="50" y2="93" stroke="#f59e0b" stroke-width="5"/>
+          <line x1="50" y1="50" x2="17" y2="83" stroke="#ef4444" stroke-width="4"/>
+          <line x1="50" y1="50" x2="7"  y2="50" stroke="#f59e0b" stroke-width="5"/>
+          <line x1="50" y1="50" x2="17" y2="17" stroke="#ef4444" stroke-width="4"/>
+        </g>
+        <circle cx="50" cy="50" r="22" fill="#f59e0b"/>
+        <circle cx="50" cy="50" r="14" fill="#fcd34d"/>
+        <circle cx="50" cy="50" r="7"  fill="white"/>
+      </svg>
+    </div>`;
+}
 
 function openCrash() {
   crashActive = true;
@@ -834,28 +895,28 @@ function openCrash() {
       <div class="crash-round-badge" id="crash-round-badge">Раунд #—</div>
     </div>
 
-    <div class="crash-sky" id="crash-sky">
+    <div class="crash-sky phase-waiting" id="crash-sky">
       <div class="crash-mult-overlay">
         <div class="crash-mult-val" id="crash-mult-val">1.00x</div>
       </div>
       <div class="crash-rocket-container" id="crash-rocket-container">
-        <pre class="crash-rocket" id="crash-rocket">${CRASH_ART_WAIT}</pre>
+        ${_crashRocketHTML()}
       </div>
     </div>
 
     <div class="crash-fuel-wrap">
       <span class="crash-fuel-label">ТЯГА</span>
       <div class="crash-fuel-bar">
-        <div class="crash-fuel-fill" id="crash-fuel-fill" style="width:100%"></div>
+        <div class="crash-fuel-fill" id="crash-fuel-fill" style="width:100%;background:var(--green)"></div>
       </div>
       <span class="crash-fuel-pct" id="crash-fuel-pct">100%</span>
     </div>
 
     <div class="crash-status-bar" id="crash-status-bar">
       <div class="crash-countdown">
-        <div class="crash-cd-label">СТАРТ ЧЕРЕЗ</div>
-        <div class="crash-cd-val" id="crash-cd-val">10</div>
-        <div class="crash-cd-track"><div class="crash-cd-fill" id="crash-cd-fill" style="width:100%"></div></div>
+        <div class="crash-cd-label">ПОДКЛЮЧЕНИЕ...</div>
+        <div class="crash-cd-val">—</div>
+        <div class="crash-cd-track"><div class="crash-cd-fill" style="width:100%"></div></div>
       </div>
     </div>
 
@@ -870,9 +931,7 @@ function openCrash() {
       <div class="crash-bet-row">
         <input class="crash-bet-input" id="crash-bet-input" type="number" min="10"
           value="${crashMyBet}" oninput="crashMyBet=+this.value">
-        <button class="btn-crash-join" id="btn-crash-join" onclick="doCrashJoin()">
-          Сесть в ракету
-        </button>
+        <button class="btn-crash-join" onclick="doCrashJoin()">Сесть в ракету</button>
       </div>
       <div class="crash-quick-bets">
         ${[50,100,250,500,1000].map(b =>
@@ -897,7 +956,7 @@ async function doCrashJoin() {
   if (btn) { btn.disabled = true; btn.textContent = 'Садимся...'; }
   const res = await API.crashBet(crashMyBet);
   if (!res || res.__error) {
-    showToast(res?.detail || 'Ошибка');
+    showToast(res?.detail || 'Ошибка соединения');
     if (btn) { btn.disabled = false; btn.textContent = 'Сесть в ракету'; }
     return;
   }
@@ -926,7 +985,13 @@ async function doCrashCashout() {
 async function crashPoll() {
   if (!crashActive) return;
   const state = await API.crashState();
-  if (!state || !crashActive) return;
+  if (!crashActive) return;
+
+  if (!state) {
+    const bar = document.getElementById('crash-status-bar');
+    if (bar) bar.innerHTML = `<div class="crash-watch-msg">Нет соединения с сервером...</div>`;
+    return;
+  }
 
   const { phase, time_left, multiplier, crash_at, players, round_id } = state;
 
@@ -947,23 +1012,19 @@ async function crashPoll() {
 }
 
 function _crashRenderRocket(phase, multiplier) {
-  const el = document.getElementById('crash-rocket');
+  const sky = document.getElementById('crash-sky');
   const wrap = document.getElementById('crash-rocket-container');
-  if (!el || !wrap) return;
+  if (!sky || !wrap) return;
+
+  sky.className = 'crash-sky phase-' + phase;
 
   if (phase === 'waiting') {
-    el.textContent = CRASH_ART_WAIT;
-    el.className = 'crash-rocket';
     wrap.style.transform = 'translateX(-50%) translateY(0px)';
   } else if (phase === 'flying') {
-    el.textContent = CRASH_ART_FLY;
-    el.className = 'crash-rocket crash-rocket-flying';
-    const lift = Math.min(120, Math.log(multiplier + 1) * 58);
+    const lift = Math.min(115, Math.log(multiplier + 1) * 58);
     wrap.style.transform = `translateX(-50%) translateY(-${lift}px)`;
   } else {
-    el.textContent = CRASH_ART_BOOM;
-    el.className = 'crash-rocket crash-rocket-crashed';
-    wrap.style.transform = 'translateX(-50%) translateY(-60px)';
+    wrap.style.transform = 'translateX(-50%) translateY(-70px)';
   }
 }
 
@@ -989,16 +1050,13 @@ function _crashRenderFuel(multiplier) {
 function _crashRenderStatus(phase, time_left, crash_at) {
   const bar = document.getElementById('crash-status-bar');
   if (!bar) return;
-
   if (phase === 'waiting') {
     const pct = (time_left / 10) * 100;
     bar.innerHTML = `
       <div class="crash-countdown">
         <div class="crash-cd-label">СТАРТ ЧЕРЕЗ</div>
         <div class="crash-cd-val">${time_left}</div>
-        <div class="crash-cd-track">
-          <div class="crash-cd-fill" style="width:${pct}%"></div>
-        </div>
+        <div class="crash-cd-track"><div class="crash-cd-fill" style="width:${pct}%"></div></div>
       </div>`;
   } else if (phase === 'flying') {
     bar.innerHTML = `<div class="crash-status-flying">РАКЕТА В ПОЛЁТЕ</div>`;
@@ -1021,7 +1079,7 @@ function _crashRenderPlayers(players, phase) {
     } else if (phase === 'crashed') {
       st = `<span class="crash-p-lose">✗</span>`;
     } else {
-      st = `<span class="crash-p-fly">↑</span>`;
+      st = `<span class="crash-p-fly">▲</span>`;
     }
     return `<div class="crash-player-item">
       <span class="crash-p-name">${p.name}</span>

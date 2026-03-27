@@ -663,8 +663,7 @@ html, body { height: 100%; overflow: hidden; font-family: 'Inter', sans-serif; b
 
 /* ===== CRASH GAME ===== */
 .crash-header {
-  display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: 12px;
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;
 }
 .crash-title {
   font-size: 22px; font-weight: 900; letter-spacing: 3px;
@@ -678,78 +677,115 @@ html, body { height: 100%; overflow: hidden; font-family: 'Inter', sans-serif; b
 
 /* Sky */
 .crash-sky {
-  height: 210px;
-  background: linear-gradient(180deg, #010110 0%, #06061e 50%, #0e0e28 100%);
+  height: 220px;
+  background: linear-gradient(180deg, #010110 0%, #06061e 55%, #0e0e28 100%);
   border-radius: 16px; position: relative; overflow: hidden; margin-bottom: 10px;
   border: 1px solid rgba(100,100,200,0.15);
 }
-/* Stars pattern */
 .crash-sky::before {
   content: '';
-  position: absolute; inset: 0;
+  position: absolute; inset: 0; pointer-events: none;
   background-image:
-    radial-gradient(1px 1px at 15% 20%, rgba(255,255,255,0.7) 0%, transparent 100%),
-    radial-gradient(1px 1px at 35% 10%, rgba(255,255,255,0.5) 0%, transparent 100%),
-    radial-gradient(1px 1px at 55% 30%, rgba(255,255,255,0.6) 0%, transparent 100%),
-    radial-gradient(1px 1px at 75% 15%, rgba(255,255,255,0.8) 0%, transparent 100%),
-    radial-gradient(1px 1px at 90% 40%, rgba(255,255,255,0.4) 0%, transparent 100%),
-    radial-gradient(1px 1px at 25% 50%, rgba(255,255,255,0.5) 0%, transparent 100%),
-    radial-gradient(1px 1px at 65% 55%, rgba(255,255,255,0.3) 0%, transparent 100%),
-    radial-gradient(1px 1px at 45% 70%, rgba(255,255,255,0.6) 0%, transparent 100%),
-    radial-gradient(1px 1px at 80% 65%, rgba(255,255,255,0.4) 0%, transparent 100%),
-    radial-gradient(1px 1px at 10% 75%, rgba(255,255,255,0.5) 0%, transparent 100%),
-    radial-gradient(1px 1px at 50% 85%, rgba(255,255,255,0.3) 0%, transparent 100%),
-    radial-gradient(1px 1px at 20% 90%, rgba(255,255,255,0.7) 0%, transparent 100%),
-    radial-gradient(1px 1px at 70% 88%, rgba(255,255,255,0.4) 0%, transparent 100%),
-    radial-gradient(1.5px 1.5px at 5% 45%, rgba(255,255,255,0.9) 0%, transparent 100%),
-    radial-gradient(1.5px 1.5px at 95% 25%, rgba(255,255,255,0.8) 0%, transparent 100%);
-  pointer-events: none;
+    radial-gradient(1px 1px at 12% 18%, rgba(255,255,255,0.8) 0%, transparent 100%),
+    radial-gradient(1px 1px at 33% 8%,  rgba(255,255,255,0.5) 0%, transparent 100%),
+    radial-gradient(1px 1px at 57% 25%, rgba(255,255,255,0.7) 0%, transparent 100%),
+    radial-gradient(1px 1px at 78% 12%, rgba(255,255,255,0.9) 0%, transparent 100%),
+    radial-gradient(1px 1px at 92% 38%, rgba(255,255,255,0.4) 0%, transparent 100%),
+    radial-gradient(1px 1px at 22% 48%, rgba(255,255,255,0.6) 0%, transparent 100%),
+    radial-gradient(1px 1px at 68% 52%, rgba(255,255,255,0.3) 0%, transparent 100%),
+    radial-gradient(1px 1px at 44% 68%, rgba(255,255,255,0.5) 0%, transparent 100%),
+    radial-gradient(1px 1px at 83% 63%, rgba(255,255,255,0.4) 0%, transparent 100%),
+    radial-gradient(1px 1px at 8%  72%, rgba(255,255,255,0.6) 0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 4%  42%, rgba(255,255,255,0.9) 0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 96% 22%, rgba(255,255,255,0.8) 0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 52% 5%,  rgba(255,255,255,1)   0%, transparent 100%);
 }
 
-/* Rocket */
+/* Rocket container */
 .crash-rocket-container {
-  position: absolute; bottom: 12px; left: 50%;
+  position: absolute; bottom: 8px; left: 50%;
   transform: translateX(-50%) translateY(0px);
-  transition: transform 0.18s ease-out;
+  transition: transform 0.2s ease-out;
   z-index: 2;
 }
-.crash-rocket {
-  font-family: 'Courier New', Courier, monospace;
-  font-size: 11px; line-height: 1.35; text-align: center;
-  white-space: pre; margin: 0;
-  color: #c8c8ff;
-  filter: drop-shadow(0 0 6px rgba(100,120,255,0.5));
-}
-.crash-rocket.crash-rocket-flying {
-  color: #ffffff;
-  filter: drop-shadow(0 0 10px rgba(255,200,80,0.9));
-  animation: rocket-shake 0.08s infinite;
-}
-.crash-rocket.crash-rocket-crashed {
-  color: #e74c3c;
-  filter: drop-shadow(0 0 14px rgba(231,76,60,0.9));
-  animation: crash-boom 0.25s ease-out;
-}
-@keyframes rocket-shake {
-  0%   { margin-left: -1px; }
-  50%  { margin-left:  1px; }
-  100% { margin-left: -1px; }
-}
-@keyframes crash-boom {
-  0%   { transform: scale(1.5); opacity: 0.6; }
-  60%  { transform: scale(0.9); }
-  100% { transform: scale(1); opacity: 1; }
+
+/* SVG rocket */
+.crash-rocket-svg {
+  width: 70px; height: 175px; display: block;
+  filter: drop-shadow(0 0 8px rgba(77,110,245,0.5));
+  transition: filter 0.3s;
 }
 
-/* Multiplier */
+/* Flames — hidden by default, shown when flying */
+.cr-flames { opacity: 0; transition: opacity 0.25s; }
+.phase-flying .cr-flames { opacity: 1; }
+
+/* Flame animations */
+.cr-fl-outer {
+  transform-origin: 40px 165px;
+  animation: none;
+}
+.cr-fl-inner {
+  transform-origin: 40px 160px;
+  animation: none;
+}
+.phase-flying .cr-fl-outer {
+  animation: flame-out 0.12s ease-in-out infinite alternate;
+}
+.phase-flying .cr-fl-inner {
+  animation: flame-in 0.09s ease-in-out infinite alternate-reverse;
+}
+@keyframes flame-out {
+  from { transform: scaleY(1)   scaleX(1); }
+  to   { transform: scaleY(1.2) scaleX(0.85); }
+}
+@keyframes flame-in {
+  from { transform: scaleY(1)   scaleX(1); }
+  to   { transform: scaleY(1.3) scaleX(0.8); }
+}
+
+/* Rocket shake when flying */
+.phase-flying .crash-rocket-svg {
+  filter: drop-shadow(0 0 12px rgba(245,200,66,0.7));
+  animation: svg-shake 0.09s linear infinite;
+}
+@keyframes svg-shake {
+  0%   { transform: translateX(-0.8px); }
+  50%  { transform: translateX(0.8px); }
+  100% { transform: translateX(-0.8px); }
+}
+
+/* Rocket hidden on crash */
+.phase-crashed .crash-rocket-svg {
+  opacity: 0; transition: opacity 0.1s;
+}
+
+/* Explosion */
+.cr-explosion {
+  display: none; position: absolute;
+  width: 110px; height: 110px;
+  top: 50%; left: 50%; transform: translate(-50%, -50%);
+}
+.cr-explosion svg { width: 100%; height: 100%; }
+.phase-crashed .cr-explosion {
+  display: block;
+  animation: explode 0.35s cubic-bezier(0.2,0.8,0.4,1) forwards;
+}
+@keyframes explode {
+  0%   { transform: translate(-50%,-50%) scale(0.2); opacity: 1; }
+  60%  { transform: translate(-50%,-50%) scale(1.15); opacity: 1; }
+  100% { transform: translate(-50%,-50%) scale(1); opacity: 1; }
+}
+
+/* Multiplier overlay */
 .crash-mult-overlay {
-  position: absolute; top: 14px; left: 0; right: 0;
+  position: absolute; top: 12px; left: 0; right: 0;
   display: flex; justify-content: center; z-index: 3; pointer-events: none;
 }
 .crash-mult-val {
-  font-size: 38px; font-weight: 900; font-family: 'Inter', sans-serif;
+  font-size: 40px; font-weight: 900; font-family: 'Inter', sans-serif;
   color: rgba(255,255,255,0.9);
-  text-shadow: 0 0 20px rgba(255,255,255,0.3);
+  text-shadow: 0 0 20px rgba(255,255,255,0.25);
   transition: color 0.2s;
 }
 .crash-mult-val.c-flying {
@@ -763,51 +799,23 @@ html, body { height: 100%; overflow: hidden; font-family: 'Inter', sans-serif; b
 }
 @keyframes mult-bounce {
   from { transform: scale(1); }
-  to   { transform: scale(1.05); }
+  to   { transform: scale(1.06); }
 }
 
 /* Fuel bar */
-.crash-fuel-wrap {
-  display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
-}
-.crash-fuel-label {
-  font-size: 10px; font-weight: 800; color: var(--text3);
-  letter-spacing: 1.5px; flex-shrink: 0; width: 32px;
-}
-.crash-fuel-bar {
-  flex: 1; height: 7px; background: var(--bg3);
-  border-radius: 4px; overflow: hidden;
-}
-.crash-fuel-fill {
-  height: 100%; border-radius: 4px;
-  transition: width 0.25s, background 0.5s;
-}
-.crash-fuel-pct {
-  font-size: 10px; font-weight: 700; color: var(--text3);
-  width: 32px; text-align: right; flex-shrink: 0;
-}
+.crash-fuel-wrap { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.crash-fuel-label { font-size: 10px; font-weight: 800; color: var(--text3); letter-spacing: 1.5px; flex-shrink: 0; width: 32px; }
+.crash-fuel-bar { flex: 1; height: 7px; background: var(--bg3); border-radius: 4px; overflow: hidden; }
+.crash-fuel-fill { height: 100%; border-radius: 4px; transition: width 0.25s, background 0.5s; }
+.crash-fuel-pct { font-size: 10px; font-weight: 700; color: var(--text3); width: 32px; text-align: right; flex-shrink: 0; }
 
 /* Status bar */
 .crash-status-bar { margin-bottom: 10px; }
-.crash-countdown {
-  display: flex; align-items: center; gap: 10px;
-  background: var(--bg3); border-radius: 12px; padding: 10px 14px;
-}
-.crash-cd-label {
-  font-size: 9px; font-weight: 800; color: var(--text3);
-  letter-spacing: 1px; flex-shrink: 0;
-}
-.crash-cd-val {
-  font-size: 26px; font-weight: 900; color: var(--gold);
-  width: 30px; text-align: center; flex-shrink: 0; line-height: 1;
-}
-.crash-cd-track {
-  flex: 1; height: 4px; background: rgba(255,255,255,0.06); border-radius: 2px; overflow: hidden;
-}
-.crash-cd-fill {
-  height: 100%; background: var(--gold); border-radius: 2px;
-  transition: width 0.9s linear;
-}
+.crash-countdown { display: flex; align-items: center; gap: 10px; background: var(--bg3); border-radius: 12px; padding: 10px 14px; }
+.crash-cd-label { font-size: 9px; font-weight: 800; color: var(--text3); letter-spacing: 1px; flex-shrink: 0; }
+.crash-cd-val { font-size: 26px; font-weight: 900; color: var(--gold); width: 30px; text-align: center; flex-shrink: 0; line-height: 1; }
+.crash-cd-track { flex: 1; height: 4px; background: rgba(255,255,255,0.06); border-radius: 2px; overflow: hidden; }
+.crash-cd-fill { height: 100%; background: var(--gold); border-radius: 2px; transition: width 0.9s linear; }
 .crash-status-flying {
   background: rgba(245,200,66,0.1); border: 1px solid rgba(245,200,66,0.25);
   border-radius: 12px; padding: 11px; text-align: center;
@@ -819,96 +827,36 @@ html, body { height: 100%; overflow: hidden; font-family: 'Inter', sans-serif; b
   border-radius: 12px; padding: 11px; text-align: center;
   font-size: 15px; font-weight: 900; color: var(--red); letter-spacing: 1px;
 }
-@keyframes flying-glow {
-  from { box-shadow: none; }
-  to   { box-shadow: 0 0 12px rgba(245,200,66,0.25); }
-}
+@keyframes flying-glow { from { box-shadow: none; } to { box-shadow: 0 0 12px rgba(245,200,66,0.25); } }
 
 /* Players */
 .crash-players-wrap { margin-bottom: 10px; }
-.crash-players-title {
-  font-size: 10px; font-weight: 800; color: var(--text3);
-  letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 6px;
-}
-.crash-players-list {
-  display: flex; flex-direction: column; gap: 4px;
-  max-height: 100px; overflow-y: auto;
-}
+.crash-players-title { font-size: 10px; font-weight: 800; color: var(--text3); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 6px; }
+.crash-players-list { display: flex; flex-direction: column; gap: 4px; max-height: 96px; overflow-y: auto; }
 .crash-players-list::-webkit-scrollbar { display: none; }
-.crash-no-players {
-  font-size: 12px; color: var(--text3); text-align: center; padding: 8px;
-  background: var(--bg3); border-radius: 8px;
-}
-.crash-player-item {
-  display: flex; align-items: center; gap: 8px;
-  background: var(--bg3); border-radius: 8px; padding: 7px 10px;
-}
-.crash-p-name {
-  flex: 1; font-size: 13px; font-weight: 600;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
+.crash-no-players { font-size: 12px; color: var(--text3); text-align: center; padding: 8px; background: var(--bg3); border-radius: 8px; }
+.crash-player-item { display: flex; align-items: center; gap: 8px; background: var(--bg3); border-radius: 8px; padding: 7px 10px; }
+.crash-p-name { flex: 1; font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .crash-p-bet { font-size: 12px; color: var(--text2); flex-shrink: 0; }
 .crash-p-win { font-size: 12px; font-weight: 800; color: var(--green); flex-shrink: 0; }
 .crash-p-lose { font-size: 12px; font-weight: 800; color: var(--red); flex-shrink: 0; }
-.crash-p-fly {
-  font-size: 14px; color: var(--gold); flex-shrink: 0;
-  animation: p-fly 0.6s ease-in-out infinite alternate;
-}
-@keyframes p-fly {
-  from { transform: translateY(0); }
-  to   { transform: translateY(-3px); }
-}
+.crash-p-fly { font-size: 11px; color: var(--gold); flex-shrink: 0; animation: p-fly 0.5s ease-in-out infinite alternate; }
+@keyframes p-fly { from { transform: translateY(0); } to { transform: translateY(-3px); } }
 
 /* Controls */
 .crash-controls { display: flex; flex-direction: column; gap: 8px; }
 .crash-bet-row { display: flex; gap: 8px; }
-.crash-bet-input {
-  flex: 1; background: var(--bg3); border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 10px; padding: 11px 14px; color: white;
-  font-size: 16px; font-weight: 700; outline: none;
-  font-family: 'Inter', sans-serif;
-}
-.btn-crash-join {
-  background: linear-gradient(135deg, #e74c3c, #c0392b); color: white; border: none;
-  border-radius: 10px; padding: 11px 14px; font-size: 13px; font-weight: 800;
-  cursor: pointer; flex-shrink: 0; transition: transform 0.1s, opacity 0.2s;
-  white-space: nowrap;
-}
+.crash-bet-input { flex: 1; background: var(--bg3); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 11px 14px; color: white; font-size: 16px; font-weight: 700; outline: none; font-family: 'Inter', sans-serif; }
+.btn-crash-join { background: linear-gradient(135deg, #e74c3c, #c0392b); color: white; border: none; border-radius: 10px; padding: 11px 14px; font-size: 13px; font-weight: 800; cursor: pointer; flex-shrink: 0; transition: transform 0.1s, opacity 0.2s; white-space: nowrap; }
 .btn-crash-join:active { transform: scale(0.96); }
 .btn-crash-join:disabled { opacity: 0.5; cursor: default; }
 .crash-quick-bets { display: flex; gap: 5px; }
-.crash-qbet {
-  flex: 1; background: var(--bg3); border: 1px solid rgba(255,255,255,0.07);
-  border-radius: 8px; color: var(--text2); font-size: 11px; font-weight: 700;
-  padding: 7px 2px; cursor: pointer; transition: background 0.15s;
-  font-family: 'Inter', sans-serif;
-}
+.crash-qbet { flex: 1; background: var(--bg3); border: 1px solid rgba(255,255,255,0.07); border-radius: 8px; color: var(--text2); font-size: 11px; font-weight: 700; padding: 7px 2px; cursor: pointer; transition: background 0.15s; font-family: 'Inter', sans-serif; }
 .crash-qbet:active { background: var(--card2); color: var(--text); }
-.btn-crash-cashout {
-  width: 100%; padding: 15px; border-radius: 12px;
-  background: linear-gradient(135deg, #27ae60, #1e8449);
-  color: white; font-size: 18px; font-weight: 900; border: none; cursor: pointer;
-  letter-spacing: 1px; font-family: 'Inter', sans-serif;
-  animation: cashout-pulse 0.45s ease-in-out infinite alternate;
-}
+.btn-crash-cashout { width: 100%; padding: 15px; border-radius: 12px; background: linear-gradient(135deg, #27ae60, #1e8449); color: white; font-size: 18px; font-weight: 900; border: none; cursor: pointer; letter-spacing: 1px; font-family: 'Inter', sans-serif; animation: cashout-pulse 0.45s ease-in-out infinite alternate; }
 .btn-crash-cashout:disabled { opacity: 0.5; animation: none; cursor: default; }
-@keyframes cashout-pulse {
-  from { box-shadow: 0 0 0 rgba(39,174,96,0); }
-  to   { box-shadow: 0 0 20px rgba(39,174,96,0.55); }
-}
-.crash-cashout-hint {
-  text-align: center; font-size: 11px; color: var(--text2);
-}
-.crash-on-board {
-  background: rgba(77,110,245,0.13); border: 1px solid rgba(77,110,245,0.28);
-  border-radius: 12px; padding: 13px; text-align: center;
-  font-size: 13px; font-weight: 700; color: var(--accent2);
-}
-.crash-watch-msg {
-  text-align: center; font-size: 12px; color: var(--text3);
-  padding: 13px; background: var(--bg3); border-radius: 12px;
-}
-.crash-next-round {
-  background: var(--bg3); border-radius: 12px; padding: 13px; text-align: center;
-  font-size: 12px; color: var(--text2);
-}
+@keyframes cashout-pulse { from { box-shadow: 0 0 0 rgba(39,174,96,0); } to { box-shadow: 0 0 20px rgba(39,174,96,0.55); } }
+.crash-cashout-hint { text-align: center; font-size: 11px; color: var(--text2); }
+.crash-on-board { background: rgba(77,110,245,0.13); border: 1px solid rgba(77,110,245,0.28); border-radius: 12px; padding: 13px; text-align: center; font-size: 13px; font-weight: 700; color: var(--accent2); }
+.crash-watch-msg { text-align: center; font-size: 12px; color: var(--text3); padding: 13px; background: var(--bg3); border-radius: 12px; }
+.crash-next-round { background: var(--bg3); border-radius: 12px; padding: 13px; text-align: center; font-size: 12px; color: var(--text2); }
