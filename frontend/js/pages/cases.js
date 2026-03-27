@@ -354,9 +354,9 @@ async function doPvpBetCheck(res) {
   await pvpRefreshLobby();
 }
 
-// ===== FREE CASE =====
+// ===== БЕСПЛАТНЫЙ КЕЙС =====
 const FREE_ITEMS = [
-  { stars: 0,   label: 'Ничего', rarity: 'common' },
+  { stars: 0,   label: '✕',      rarity: 'common',   color: '#e74c3c' },
   { stars: 5,   label: '⭐ 5',   rarity: 'common' },
   { stars: 10,  label: '⭐ 10',  rarity: 'common' },
   { stars: 15,  label: '⭐ 15',  rarity: 'common' },
@@ -379,8 +379,9 @@ function openFreeCase() {
       <div class="spin-pointer"></div>
       <div class="spin-track" id="spin-track">
         ${spinItems.map(item => `
-          <div class="spin-item ${item.rarity === 'epic' ? 'epic' : item.rarity === 'rare' ? 'rare' : ''}">
-            <span class="spin-item-label">${item.label}</span>
+          <div class="spin-item ${item.rarity === 'epic' ? 'epic' : item.rarity === 'rare' ? 'rare' : ''}"
+            ${item.color ? `style="border-color:${item.color}55;background:${item.color}12"` : ''}>
+            <span class="spin-item-label" ${item.color ? `style="color:${item.color};font-size:22px;font-weight:900"` : ''}>${item.label}</span>
           </div>
         `).join('')}
       </div>
@@ -418,8 +419,8 @@ async function doFreeSpin() {
     const item = res.item || winItem;
     const localItem = FREE_ITEMS.find(i => i.stars === (res.item?.stars ?? -1)) || winItem;
     document.getElementById('spin-result').innerHTML = `
-      <div class="spin-result-item">${localItem.label}</div>
-      <div class="spin-result-val">${localItem.stars > 0 ? `+${localItem.stars} звёзд` : 'Не повезло'}</div>
+      <div class="spin-result-item" ${localItem.color ? `style="color:${localItem.color}"` : ''}>${localItem.label}</div>
+      <div class="spin-result-val">${localItem.stars > 0 ? `+${localItem.stars} звёзд` : '<span style="color:#e74c3c">Не повезло</span>'}</div>
     `;
     document.getElementById('spin-result').style.display = 'block';
     btn.textContent = '⏰ Завтра снова';
@@ -433,131 +434,138 @@ async function doFreeSpin() {
   }, 3600);
 }
 
-// ===== ROULETTE =====
+// ===== РУЛЕТКА =====
 
-// --- ADMIN CONFIG ---
-// Шанс проигрыша (0.0 – 1.0). Для админ-панели просто меняй это значение:
+// --- НАСТРОЙКИ АДМИНИСТРАТОРА ---
+// Шанс проигрыша (0.0 – 1.0). Для изменения просто правь это значение:
 //   ROULETTE_CONFIG.lossChance = 0.5  →  50% проигрышей
 //   ROULETTE_CONFIG.lossChance = 0.9  →  90% проигрышей
-const ROULETTE_CONFIG = {
-  lossChance: 0.70,
-};
-// --------------------
+const ROULETTE_CONFIG = { lossChance: 0.70 };
 
-// Только победные секторы — потери генерируются автоматически через ROULETTE_CONFIG
-// weight — относительный шанс выпасть среди выигрышных секторов (для админки меняй weight)
-const ROULETTE_TIERS = {
-  50: [
-    { emoji: '🌱', name: '×1.1', mult: 1.1, color: '#27ae60', weight: 40 },
-    { emoji: '🍃', name: '×1.2', mult: 1.2, color: '#2ecc71', weight: 30 },
-    { emoji: '🌟', name: '×1.5', mult: 1.5, color: '#3498db', weight: 15 },
-    { emoji: '💰', name: '×2',   mult: 2,   color: '#9b59b6', weight: 8  },
-    { emoji: '🏆', name: '×3',   mult: 3,   color: '#f1c40f', weight: 3  },
-  ],
-  100: [
-    { emoji: '🌱', name: '×1.1', mult: 1.1, color: '#27ae60', weight: 35 },
-    { emoji: '🍃', name: '×1.2', mult: 1.2, color: '#2ecc71', weight: 25 },
-    { emoji: '🌟', name: '×1.5', mult: 1.5, color: '#3498db', weight: 15 },
-    { emoji: '💰', name: '×2',   mult: 2,   color: '#9b59b6', weight: 8  },
-    { emoji: '🏆', name: '×3',   mult: 3,   color: '#f1c40f', weight: 3  },
-    { emoji: '💎', name: '×5',   mult: 5,   color: '#e91e8c', weight: 0.5},
-  ],
-  250: [
-    { emoji: '🌱', name: '×1.1', mult: 1.1, color: '#27ae60', weight: 30 },
-    { emoji: '🍃', name: '×1.2', mult: 1.2, color: '#2ecc71', weight: 22 },
-    { emoji: '🌟', name: '×1.5', mult: 1.5, color: '#3498db', weight: 14 },
-    { emoji: '💰', name: '×2',   mult: 2,   color: '#9b59b6', weight: 7  },
-    { emoji: '🏆', name: '×3',   mult: 3,   color: '#f1c40f', weight: 2  },
-    { emoji: '💎', name: '×5',   mult: 5,   color: '#e91e8c', weight: 0.5},
-    { emoji: '🔮', name: '×7',   mult: 7,   color: '#8e44ad', weight: 0.1},
-  ],
-  500: [
-    { emoji: '🍃', name: '×1.2', mult: 1.2, color: '#2ecc71', weight: 30 },
-    { emoji: '🌟', name: '×1.5', mult: 1.5, color: '#3498db', weight: 22 },
-    { emoji: '💰', name: '×2',   mult: 2,   color: '#9b59b6', weight: 14 },
-    { emoji: '🏆', name: '×3',   mult: 3,   color: '#f1c40f', weight: 5  },
-    { emoji: '💎', name: '×5',   mult: 5,   color: '#e91e8c', weight: 1  },
-    { emoji: '🚀', name: '×10',  mult: 10,  color: '#f39c12', weight: 0.1},
-  ],
-};
+// Единая рулетка со всеми множителями
+const ROULETTE_ITEMS = [
+  { name: '×1.1', mult: 1.1, color: '#27ae60', weight: 40 },
+  { name: '×1.5', mult: 1.5, color: '#3498db', weight: 20 },
+  { name: '×2',   mult: 2,   color: '#9b59b6', weight: 12 },
+  { name: '×3',   mult: 3,   color: '#f1c40f', weight: 5  },
+  { name: '×5',   mult: 5,   color: '#e91e8c', weight: 1  },
+  { name: '×7',   mult: 7,   color: '#8e44ad', weight: 0.3},
+  { name: '×10',  mult: 10,  color: '#f39c12', weight: 0.1},
+];
 
-const LOSS_ITEM = { emoji: '💀', name: 'Проигрыш', mult: 0, color: '#e74c3c', stars: 0 };
+const LOSS_ITEM = { name: '×0', mult: 0, color: '#e74c3c', stars: 0 };
 
 let rouletteBet = 100;
 
-// Строит ленту из 20 слотов: ~lossChance долей занимают проигрыши,
-// остаток — победные сектора из тира. Состав ленты отражает lossChance визуально.
+function _rouletteStar(size, color) {
+  const id = 'rs' + (Math.random() * 1e9 | 0).toString(36);
+  return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 0 5px ${color}bb);flex-shrink:0;display:inline-block;vertical-align:middle">
+    <defs>
+      <radialGradient id="${id}" cx="38%" cy="28%">
+        <stop offset="0%" stop-color="#fffde7"/>
+        <stop offset="45%" stop-color="${color}"/>
+        <stop offset="100%" stop-color="${color}88"/>
+      </radialGradient>
+    </defs>
+    <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"
+      fill="url(#${id})" stroke="${color}" stroke-width="0.5"/>
+    <polygon points="12,4.5 14,8.8 18.7,9.5 15.3,12.8 16.1,17.5 12,15.3 7.9,17.5 8.7,12.8 5.3,9.5 10,8.8"
+      fill="rgba(255,255,255,0.22)"/>
+  </svg>`;
+}
+
+function _goldStar(size = 18) { return _rouletteStar(size, '#ffd700'); }
+
+// Визуально только 2 проигрыша в ленте; реальная вероятность задаётся lossChance
 function getRouletteItems() {
-  const bets = [50, 100, 250, 500];
-  const key = bets.reduce((prev, cur) => rouletteBet >= cur ? cur : prev, 50);
-  const winItems = ROULETTE_TIERS[key].map(item => ({
+  const winItems = ROULETTE_ITEMS.map(item => ({
     ...item,
     stars: Math.round(rouletteBet * item.mult),
   }));
-
-  const total = 20;
-  const winCount = Math.max(1, Math.round(total * (1 - ROULETTE_CONFIG.lossChance)));
-
-  // Заполняем проигрышами, затем равномерно вставляем победные слоты
-  const strip = Array.from({ length: total }, () => ({ ...LOSS_ITEM }));
-  for (let i = 0; i < winCount; i++) {
-    const pos = Math.round(i * total / winCount);
-    strip[pos] = { ...winItems[i % winItems.length] };
+  const total = 22;
+  const lossAt = new Set([4, 16]);
+  const strip = [];
+  let wi = 0;
+  for (let i = 0; i < total; i++) {
+    strip.push(lossAt.has(i) ? { ...LOSS_ITEM } : { ...winItems[wi++ % winItems.length] });
   }
   return strip;
+}
+
+function _updateRouletteBetUI() {
+  const inp = document.getElementById('roulette-custom-input');
+  if (inp) inp.value = rouletteBet;
+  document.querySelectorAll('.pvp-bet-btn[data-rbet]').forEach(btn => {
+    btn.classList.toggle('selected', parseInt(btn.dataset.rbet) === rouletteBet);
+  });
+  const spinBtn = document.getElementById('btn-roulette');
+  if (spinBtn) spinBtn.innerHTML = `${_goldStar(18)} Крутить &nbsp;·&nbsp; ${_goldStar(18)} ${rouletteBet}`;
 }
 
 function openRoulette() {
   const items = getRouletteItems();
   const strip = [...items, ...items, ...items];
-  const tierLabel = rouletteBet >= 500 ? '🔥 Легендарный тир' : rouletteBet >= 250 ? '💜 Эпический тир' : rouletteBet >= 100 ? '💙 Редкий тир' : '⚪ Обычный тир';
 
   showModal(`
     <div class="modal-close-bar"><div class="modal-close-handle"></div></div>
-    <div class="pvp-title">🎡 Рулетка</div>
-    <div class="pvp-sub">Больше ставка — лучше награды!</div>
+    <div class="pvp-title">${_goldStar(22)} Рулетка</div>
+    <div class="pvp-sub">Крутите и умножайте свои звёзды!</div>
     <div class="spin-track-wrap">
       <div class="spin-pointer"></div>
-      <div class="spin-track" id="roulette-track">
+      <div class="spin-track roulette-idle" id="roulette-track">
         ${strip.map(item => `
-          <div class="spin-item" style="border-color:${item.color}40; background:${item.color}10">
-            <span style="font-size:28px">${item.emoji}</span>
+          <div class="spin-item" style="border-color:${item.color}55;background:${item.color}12">
+            ${_rouletteStar(36, item.color)}
             <span class="roulette-item-label" style="color:${item.color}">${item.name}</span>
           </div>
         `).join('')}
       </div>
     </div>
     <div id="roulette-result" class="roulette-result"></div>
-    <div class="roulette-tier-badge">${tierLabel}</div>
     <div class="pvp-quick-bets" style="margin-bottom:8px">
       ${[50,100,250,500].map(b => `
-        <button class="pvp-bet-btn ${b===rouletteBet?'selected':''}" onclick="setRouletteBet(${b})">⭐${b}</button>
+        <button class="pvp-bet-btn ${b===rouletteBet?'selected':''}" data-rbet="${b}"
+          onclick="setRouletteBet(${b})">${_goldStar(14)} ${b}</button>
       `).join('')}
     </div>
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
-      <input type="number" id="roulette-custom-input" placeholder="Своя сумма ⭐" min="10"
+      <input type="number" id="roulette-custom-input"
+        placeholder="Введите количество звёзд ⭐" min="10"
         style="flex:1;padding:8px 12px;border-radius:10px;border:1px solid #444;background:#1a1a2e;color:#fff;font-size:14px"
-        value="${[50,100,250,500].includes(rouletteBet)?'':rouletteBet}"
+        value="${rouletteBet}"
         onkeydown="if(event.key==='Enter')applyCustomBet()">
       <button class="pvp-bet-btn" style="padding:8px 14px" onclick="applyCustomBet()">✓</button>
     </div>
-    <button class="btn-pvp-create" id="btn-roulette" style="background:linear-gradient(135deg,#9b59b6,#6c3483)" onclick="spinRoulette()">
-      🎡 Крутить · ⭐ ${rouletteBet}
+    <button class="btn-pvp-create" id="btn-roulette"
+      style="background:linear-gradient(135deg,#9b59b6,#6c3483)" onclick="spinRoulette()">
+      ${_goldStar(18)} Крутить &nbsp;·&nbsp; ${_goldStar(18)} ${rouletteBet}
     </button>
   `);
 }
 
-function setRouletteBet(b) { rouletteBet = b; openRoulette(); }
+function setRouletteBet(b) {
+  rouletteBet = b;
+  _updateRouletteBetUI();
+}
 
 function applyCustomBet() {
   const val = parseInt(document.getElementById('roulette-custom-input')?.value);
   if (!val || val < 10) { showToast('Минимум 10 звёзд'); return; }
   if (window.appState && val > window.appState.balance) { showToast('Недостаточно звёзд'); return; }
   rouletteBet = val;
-  openRoulette();
+  document.querySelectorAll('.pvp-bet-btn[data-rbet]').forEach(btn => {
+    btn.classList.toggle('selected', parseInt(btn.dataset.rbet) === rouletteBet);
+  });
+  const spinBtn = document.getElementById('btn-roulette');
+  if (spinBtn) spinBtn.innerHTML = `${_goldStar(18)} Крутить &nbsp;·&nbsp; ${_goldStar(18)} ${rouletteBet}`;
 }
 
 function spinRoulette() {
+  if (window.appState && window.appState.balance < rouletteBet) {
+    showToast('Недостаточно звёзд!');
+    return;
+  }
+
   const btn = document.getElementById('btn-roulette');
   if (btn) btn.disabled = true;
   document.getElementById('roulette-result').innerHTML = '';
@@ -567,7 +575,14 @@ function spinRoulette() {
   const itemW = 98;
   const n = items.length;
 
-  // Исход определяется ROULETTE_CONFIG.lossChance, независимо от состава ленты
+  // Стоп холостой анимации
+  track.classList.remove('roulette-idle');
+  track.style.animation = 'none';
+  track.style.transition = 'none';
+  track.style.transform = 'translateX(0)';
+  void track.offsetWidth; // форсируем перерисовку
+
+  // Исход определяется lossChance, независимо от состава ленты
   const isLoss = Math.random() < ROULETTE_CONFIG.lossChance;
   const candidates = items
     .map((item, i) => ({ item, i }))
@@ -575,10 +590,8 @@ function spinRoulette() {
 
   let winIdx;
   if (isLoss) {
-    // Проигрыши равновероятны
     winIdx = candidates[Math.floor(Math.random() * candidates.length)].i;
   } else {
-    // Победы — взвешенный рандом по полю weight
     const totalWeight = candidates.reduce((s, { item }) => s + (item.weight ?? 1), 0);
     let r = Math.random() * totalWeight;
     winIdx = candidates[candidates.length - 1].i;
@@ -591,32 +604,40 @@ function spinRoulette() {
 
   // Приземляемся на средней (второй) копии ленты
   const targetOffset = (n + winIdx) * itemW - (track.parentElement.offsetWidth / 2) + (itemW / 2);
-  track.style.transition = 'transform 4s cubic-bezier(0.12, 0.8, 0.3, 1)';
+  track.style.transition = 'transform 4.5s cubic-bezier(0.12, 0.8, 0.3, 1)';
   track.style.transform = `translateX(-${targetOffset}px)`;
 
   setTimeout(() => {
     const resultEl = document.getElementById('roulette-result');
     if (resultEl) {
-      resultEl.innerHTML = winItem.stars > 0
-        ? `<span style="color:${winItem.color}">✨ ${winItem.name} — ⭐ ${winItem.stars.toLocaleString()}</span>`
-        : `<span style="color:var(--red)">💀 Не повезло...</span>`;
+      resultEl.innerHTML = winItem.mult > 0
+        ? `${_rouletteStar(20, winItem.color)}<span style="color:${winItem.color}">${winItem.name}</span><span style="color:var(--text2)">—</span>${_goldStar(18)}<span style="color:var(--gold)">${winItem.stars.toLocaleString()}</span>`
+        : `<span style="color:#e74c3c">Не повезло...</span>`;
     }
-    if (winItem.stars > 0) {
+    if (winItem.mult > 0) {
       if (window.appState) window.appState.balance += winItem.stars - rouletteBet;
-      if (winItem.stars >= 100) API.recordWin(winItem.emoji, winItem.name, winItem.stars);
+      if (winItem.stars >= 100) API.recordWin('⭐', winItem.name, winItem.stars);
       if (winItem.stars >= rouletteBet * 5) {
         hideModal();
-        showWin(winItem.emoji, winItem.name, `⭐ ${winItem.stars.toLocaleString()}`);
+        showWin('⭐', winItem.name, `⭐ ${winItem.stars.toLocaleString()}`);
       }
     } else {
       if (window.appState) window.appState.balance -= rouletteBet;
     }
     updateBalance();
-    if (btn) { btn.disabled = false; btn.textContent = '🔄 Крутить ещё'; }
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = `${_goldStar(18)} Крутить ещё`;
+    }
     setTimeout(() => {
-      if (track) { track.style.transition = 'none'; track.style.transform = 'translateX(0)'; }
-    }, 1000);
-  }, 4100);
+      if (track) {
+        track.style.transition = 'none';
+        track.style.transform = 'translateX(0)';
+        void track.offsetWidth;
+        track.classList.add('roulette-idle');
+      }
+    }, 1200);
+  }, 4600);
 }
 
 // ===== CRASH ===== (see full implementation at bottom of file)
@@ -987,9 +1008,11 @@ async function crashPoll() {
   const state = await API.crashState();
   if (!crashActive) return;
 
-  if (!state) {
+  if (!state || state.__error) {
     const bar = document.getElementById('crash-status-bar');
     if (bar) bar.innerHTML = `<div class="crash-watch-msg">Нет соединения с сервером...</div>`;
+    const list = document.getElementById('crash-players-list');
+    if (list) list.innerHTML = `<div class="crash-no-players">Нет соединения...</div>`;
     return;
   }
 
