@@ -198,7 +198,7 @@
             <div class="user-name">${u.name || 'Без имени'}</div>
             <div class="user-meta">${u.username ? '@' + u.username : ''} · ID: ${u.id}</div>
             <div class="user-actions">
-              <button onclick="openGiveModal(${u.id}, '${(u.name || u.username || 'Игрок').replace(/'/g,'\\'')}')">⭐ Звёзды</button>
+              <button onclick="openGiveModal(${u.id}, this.dataset.n)" data-n="${(u.name || u.username || 'Игрок').replace(/"/g,'&quot;')}">⭐ Звёзды</button>
               <button class="secondary" onclick="resetCooldown(${u.id})">🔄 Сброс кейса</button>
             </div>
           </div>
