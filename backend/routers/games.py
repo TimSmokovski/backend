@@ -24,15 +24,17 @@ def _is_admin(user: dict) -> bool:
 router = APIRouter(tags=["games"])
 
 ROULETTE_SECTIONS = [
-    {"name": "2x",   "mult": 2.0},
-    {"name": "1.5x", "mult": 1.5},
-    {"name": "3x",   "mult": 3.0},
-    {"name": "5x",   "mult": 5.0},
-    {"name": "1.2x", "mult": 1.2},
-    {"name": "10x",  "mult": 10.0},
-    {"name": "0x",   "mult": 0.0},
+    {"name": "×1.1", "mult": 1.1},
+    {"name": "×1.5", "mult": 1.5},
+    {"name": "×2",   "mult": 2.0},
+    {"name": "×3",   "mult": 3.0},
+    {"name": "×5",   "mult": 5.0},
+    {"name": "×7",   "mult": 7.0},
+    {"name": "×10",  "mult": 10.0},
+    {"name": "×0",   "mult": 0.0},
 ]
-ROULETTE_WEIGHTS = [30, 25, 15, 10, 12, 3, 5]
+# Веса выигрышных секций (сумма = 78.4)
+ROULETTE_WEIGHTS = [40, 20, 12, 5, 1, 0.3, 0.1, 78.4]
 GLOBAL_WIN_CHANCE = 50  # 0–100, загружается из БД
 
 SLOT_EMOJIS = ["🍒", "🍋", "🍊", "🍇", "⭐", "💎", "🃏", "7️⃣"]
@@ -40,11 +42,14 @@ SLOT_MULT   = {"💎": 50, "7️⃣": 20, "⭐": 15, "🍇": 10, "🍒": 8, "�
 
 
 def _chance_weights(chance: int):
-    """Возвращает секции и веса на основе chance 0–100."""
+    """chance=30 → ровно 30% побед. Веса нормализуются отдельно для выигрышей и проигрышей."""
     win_pairs  = [(s, ROULETTE_WEIGHTS[i]) for i, s in enumerate(ROULETTE_SECTIONS) if s["mult"] > 0]
     lose_pairs = [(s, ROULETTE_WEIGHTS[i]) for i, s in enumerate(ROULETTE_SECTIONS) if s["mult"] == 0]
+    sum_w = sum(wt for _, wt in win_pairs) or 1
+    sum_l = sum(wt for _, wt in lose_pairs) or 1
     secs = [s for s, _ in win_pairs] + [s for s, _ in lose_pairs]
-    w    = [wt * chance for _, wt in win_pairs] + [wt * (100 - chance) for _, wt in lose_pairs]
+    w    = [wt / sum_w * chance     for _, wt in win_pairs] + \
+           [wt / sum_l * (100 - chance) for _, wt in lose_pairs]
     if sum(w) == 0:
         w = [1] * len(w)
     return secs, w

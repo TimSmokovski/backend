@@ -551,60 +551,43 @@ function applyCustomBet() {
   if (spinBtn) spinBtn.innerHTML = `${_goldStar(18)} Крутить &nbsp;·&nbsp; ${_goldStar(18)} ${rouletteBet}`;
 }
 
-function spinRoulette() {
+async function spinRoulette() {
   if (window.appState && window.appState.balance < rouletteBet) {
     showToast('Недостаточно звёзд!');
     return;
   }
 
   const btn = document.getElementById('btn-roulette');
-  if (btn) btn.disabled = true;
+  if (btn) { btn.disabled = true; btn.innerHTML = `${_goldStar(18)} Ждём...`; }
   document.getElementById('roulette-result').innerHTML = '';
+
+  // Сервер определяет исход
+  const res = await API.spinRoulette(rouletteBet);
+  if (!res || res.__error) {
+    if (btn) { btn.disabled = false; btn.innerHTML = `${_goldStar(18)} Крутить &nbsp;·&nbsp; ${_goldStar(18)} ${rouletteBet}`; }
+    showToast(res?.detail || 'Ошибка соединения');
+    return;
+  }
 
   const items = getRouletteItems();
   const track = document.getElementById('roulette-track');
   const itemW = 98;
   const n = items.length;
 
-  // Отменяем отложенный сброс предыдущего спина
-  if (rouletteResetTimeout) {
-    clearTimeout(rouletteResetTimeout);
-    rouletteResetTimeout = null;
-  }
-
-  // Стоп холостой анимации
+  if (rouletteResetTimeout) { clearTimeout(rouletteResetTimeout); rouletteResetTimeout = null; }
   track.classList.remove('roulette-idle');
   track.style.animation = 'none';
   track.style.transition = 'none';
   track.style.transform = 'translateX(0)';
-  void track.offsetWidth; // форсируем перерисовку
+  void track.offsetWidth;
 
-  // Исход определяется lossChance, независимо от состава ленты
-  const _luckRawR = localStorage.getItem('admin_luck_override');
-  const _pR = parseInt(_luckRawR);
-  const _localLuckR = _luckRawR !== null ? Math.max(0, Math.min(100, isNaN(_pR) ? 50 : _pR)) : null;
-  const isLoss = _localLuckR !== null
-    ? Math.random() * 100 >= _localLuckR
-    : Math.random() < ROULETTE_CONFIG.lossChance;
-  const candidates = items
-    .map((item, i) => ({ item, i }))
-    .filter(({ item }) => isLoss ? item.mult === 0 : item.mult > 0);
+  // Находим позицию в стрипе по mult от сервера
+  const serverMult = res.section.mult;
+  let winIdx = items.findIndex(item => Math.abs(item.mult - serverMult) < 0.05);
+  if (winIdx === -1) winIdx = items.findIndex(item => serverMult === 0 ? item.mult === 0 : item.mult > 0);
+  if (winIdx === -1) winIdx = 0;
+  const winItem = { ...items[winIdx], stars: res.won };
 
-  let winIdx;
-  if (isLoss) {
-    winIdx = candidates[Math.floor(Math.random() * candidates.length)].i;
-  } else {
-    const totalWeight = candidates.reduce((s, { item }) => s + (item.weight ?? 1), 0);
-    let r = Math.random() * totalWeight;
-    winIdx = candidates[candidates.length - 1].i;
-    for (const { item, i } of candidates) {
-      r -= (item.weight ?? 1);
-      if (r <= 0) { winIdx = i; break; }
-    }
-  }
-  const winItem = items[winIdx];
-
-  // Приземляемся на средней (второй) копии ленты
   const targetOffset = (n + winIdx) * itemW - (track.parentElement.offsetWidth / 2) + (itemW / 2);
   track.style.transition = 'transform 6s cubic-bezier(0.08, 0.82, 0.25, 1)';
   track.style.transform = `translateX(-${targetOffset}px)`;
@@ -613,24 +596,14 @@ function spinRoulette() {
     const resultEl = document.getElementById('roulette-result');
     if (resultEl) {
       resultEl.innerHTML = winItem.mult > 0
-        ? `${_rouletteStar(20, winItem.color)}<span style="color:${winItem.color}">${winItem.name}</span><span style="color:var(--text2)">—</span>${_goldStar(18)}<span style="color:var(--gold)">${winItem.stars.toLocaleString()}</span>`
+        ? `${_rouletteStar(20, winItem.color)}<span style="color:${winItem.color}">${winItem.name}</span><span style="color:var(--text2)">—</span>${_goldStar(18)}<span style="color:var(--gold)">${res.won.toLocaleString()}</span>`
         : `<span style="color:#e74c3c">Не повезло...</span>`;
     }
-    if (winItem.mult > 0) {
-      if (window.appState) window.appState.balance += winItem.stars - rouletteBet;
-      if (winItem.stars >= 100) API.recordWin('⭐', winItem.name, winItem.stars);
-      if (winItem.stars >= rouletteBet * 5) {
-        hideModal();
-        showWin('⭐', winItem.name, `⭐ ${winItem.stars.toLocaleString()}`);
-      }
-    } else {
-      if (window.appState) window.appState.balance -= rouletteBet;
-    }
+    if (window.appState) window.appState.balance = res.new_balance;
     updateBalance();
-    if (btn) {
-      btn.disabled = false;
-      btn.innerHTML = `${_goldStar(18)} Крутить ещё`;
-    }
+    if (res.won >= 100) API.recordWin('⭐', winItem.name, res.won);
+    if (res.won >= rouletteBet * 5) { hideModal(); showWin('⭐', winItem.name, `⭐ ${res.won.toLocaleString()}`); }
+    if (btn) { btn.disabled = false; btn.innerHTML = `${_goldStar(18)} Крутить ещё`; }
     rouletteResetTimeout = setTimeout(() => {
       rouletteResetTimeout = null;
       if (track) {
@@ -682,63 +655,25 @@ const SLOT_MULT = { '💎': 50, '7️⃣': 20, '⭐': 15, '🍇': 10, '🍒': 8,
 const SLOT_DURATIONS = [1500, 2000, 2500];
 const CELL_H = 80;
 
-function doSlotsSpin() {
+async function doSlotsSpin() {
   if ((window.appState?.balance ?? 0) < slotsBet) { showToast('Недостаточно звёзд'); return; }
   const btn = document.getElementById('btn-slots');
   btn.disabled = true;
   document.getElementById('slots-win').textContent = '';
 
-  // Джекпот: 1% при мин. ставке, масштабируется вниз с ростом ставки
-  const jackpotChance = 0.25 / slotsBet; // 25→1%, 50→0.5%, 100→0.25%, 250→0.1%
-  // Исход: jackpotChance джекпот, 29% пара, остальное проигрыш
-  const _luckRawS = localStorage.getItem('admin_luck_override');
-  const _pS = parseInt(_luckRawS);
-  const _localLuckS = _luckRawS !== null ? Math.max(0, Math.min(100, isNaN(_pS) ? 50 : _pS)) : null;
-  const roll = Math.random();
-  const rnd = () => SLOT_EMOJIS[Math.floor(Math.random() * SLOT_EMOJIS.length)];
-  let results;
-  if (_localLuckS !== null) {
-    // Удача установлена: luck=100→джекпот, luck=0→проигрыш, иначе по вероятности
-    if (_localLuckS >= 100) {
-      const sym = rnd();
-      results = [sym, sym, sym];
-    } else if (_localLuckS <= 0) {
-      do { results = [rnd(), rnd(), rnd()]; }
-      while (results[0] === results[1] || results[1] === results[2]);
-    } else if (Math.random() * 100 < _localLuckS) {
-      // Выигрыш: 30% шанс джекпота, 70% пара
-      if (Math.random() < 0.3) {
-        const sym = rnd();
-        results = [sym, sym, sym];
-      } else {
-        const sym = rnd();
-        let other; do { other = rnd(); } while (other === sym);
-        results = Math.random() < 0.5 ? [sym, sym, other] : [other, sym, sym];
-      }
-    } else {
-      do { results = [rnd(), rnd(), rnd()]; }
-      while (results[0] === results[1] || results[1] === results[2]);
-    }
-  } else if (roll < jackpotChance) {
-    // Джекпот: все три одинаковые
-    const sym = rnd();
-    results = [sym, sym, sym];
-  } else if (roll < 0.30) {
-    // Пара: два подряд одинаковых
-    const sym = rnd();
-    let other; do { other = rnd(); } while (other === sym);
-    results = Math.random() < 0.5 ? [sym, sym, other] : [other, sym, sym];
-  } else {
-    // Проигрыш: никакой пары
-    do { results = [rnd(), rnd(), rnd()]; }
-    while (results[0] === results[1] || results[1] === results[2]);
+  // Сервер определяет исход
+  const res = await API.spinSlots(slotsBet);
+  if (!res || res.__error) {
+    btn.disabled = false;
+    showToast(res?.detail || 'Ошибка соединения');
+    return;
   }
+  const results = res.reels;
 
   [0,1,2].forEach(i => {
     const drum = document.getElementById(`slot-drum-${i}`);
     if (!drum) return;
 
-    // Полоса: много рандомных, затем результат в центре, затем 1 после
     const prefixLen = 24 + i * 4;
     const cells = Array.from({ length: prefixLen }, () =>
       SLOT_EMOJIS[Math.floor(Math.random() * SLOT_EMOJIS.length)]
@@ -751,7 +686,6 @@ function doSlotsSpin() {
     drum.style.transform = 'translateY(0)';
     void drum.offsetWidth;
 
-    // Сдвигаем так, чтобы results[i] оказался в средней (центральной) строке
     const targetY = -(prefixLen - 1) * CELL_H;
     requestAnimationFrame(() => {
       drum.style.transition = `transform ${SLOT_DURATIONS[i]}ms cubic-bezier(0.05, 0.85, 0.25, 1.0)`;
@@ -761,21 +695,16 @@ function doSlotsSpin() {
 
   setTimeout(() => {
     const winEl = document.getElementById('slots-win');
-    let win = 0;
-    if (results[0] === results[1] && results[1] === results[2]) {
-      win = slotsBet * (SLOT_MULT[results[0]] ?? 4);
-      if (winEl) winEl.textContent = `🎉 ДЖЕКПОТ! +⭐${win}`;
-    } else if (results[0] === results[1] || results[1] === results[2]) {
-      win = slotsBet * 2;
-      if (winEl) winEl.textContent = `✨ Выигрыш! +⭐${win}`;
+    if (res.result === 'jackpot') {
+      if (winEl) winEl.textContent = `🎉 ДЖЕКПОТ! +⭐${res.won}`;
+    } else if (res.result === 'pair') {
+      if (winEl) winEl.textContent = `✨ Выигрыш! +⭐${res.won}`;
     } else {
       if (winEl) winEl.textContent = 'Не повезло...';
-      win = -slotsBet;
     }
-
-    if (window.appState) window.appState.balance += win;
+    if (window.appState) window.appState.balance = res.new_balance;
     updateBalance();
-    if (win >= 100) API.recordWin(results[0], 'Слоты', win);
+    if (res.won >= 100) API.recordWin(results[0], 'Слоты', res.won);
     btn.disabled = false;
   }, 2700);
 }
