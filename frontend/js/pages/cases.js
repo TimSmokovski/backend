@@ -86,12 +86,12 @@ function renderLiveBar() {
 
 
 const _modeIcons = {
-  pvp: `<svg viewBox="0 0 24 24" width="26" height="26" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2L4 5.5V11.5C4 15.8 7.4 19.7 12 21C16.6 19.7 20 15.8 20 11.5V5.5L12 2Z" fill="white" fill-opacity="0.15" stroke="white" stroke-opacity="0.85" stroke-width="1.4" stroke-linejoin="round"/><line x1="7.5" y1="8" x2="16.5" y2="16" stroke="white" stroke-width="2.2" stroke-linecap="round"/><line x1="16.5" y1="8" x2="7.5" y2="16" stroke="white" stroke-width="2.2" stroke-linecap="round"/><line x1="6" y1="9.4" x2="7.5" y2="8" stroke="white" stroke-opacity="0.6" stroke-width="1.8" stroke-linecap="round"/><line x1="18" y1="9.4" x2="16.5" y2="8" stroke="white" stroke-opacity="0.6" stroke-width="1.8" stroke-linecap="round"/></svg>`,
-  free: `<svg viewBox="0 0 24 24" width="26" height="26" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="11" width="18" height="11" rx="2" fill="white" fill-opacity="0.88"/><rect x="2" y="7.5" width="20" height="4" rx="1.5" fill="white" fill-opacity="0.65"/><rect x="10.5" y="7.5" width="3" height="14.5" fill="#ff6eb4" fill-opacity="0.9"/><rect x="2" y="10" width="20" height="2.2" fill="#ff6eb4" fill-opacity="0.9"/><path d="M11.5 7.5C9 5 5.5 5.5 5.5 7.5C5.5 9 8.5 9.2 11.5 8.2Z" fill="#ff3d87"/><path d="M12.5 7.5C15 5 18.5 5.5 18.5 7.5C18.5 9 15.5 9.2 12.5 8.2Z" fill="#ff3d87"/></svg>`,
-  roulette: `<svg viewBox="0 0 24 24" width="26" height="26" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="9.5" fill="white" fill-opacity="0.1" stroke="white" stroke-opacity="0.9" stroke-width="1.5"/><circle cx="12" cy="12" r="5.5" fill="white" fill-opacity="0.06" stroke="white" stroke-opacity="0.35" stroke-width="1"/><line x1="12" y1="2.5" x2="12" y2="6.5" stroke="white" stroke-opacity="0.85" stroke-width="1.5"/><line x1="12" y1="17.5" x2="12" y2="21.5" stroke="white" stroke-opacity="0.85" stroke-width="1.5"/><line x1="2.5" y1="12" x2="6.5" y2="12" stroke="white" stroke-opacity="0.85" stroke-width="1.5"/><line x1="17.5" y1="12" x2="21.5" y2="12" stroke="white" stroke-opacity="0.85" stroke-width="1.5"/><line x1="4.8" y1="4.8" x2="7.6" y2="7.6" stroke="white" stroke-opacity="0.55" stroke-width="1.3"/><line x1="16.4" y1="16.4" x2="19.2" y2="19.2" stroke="white" stroke-opacity="0.55" stroke-width="1.3"/><line x1="19.2" y1="4.8" x2="16.4" y2="7.6" stroke="white" stroke-opacity="0.55" stroke-width="1.3"/><line x1="7.6" y1="16.4" x2="4.8" y2="19.2" stroke="white" stroke-opacity="0.55" stroke-width="1.3"/><circle cx="12" cy="12" r="2.6" fill="white" fill-opacity="0.95"/><circle cx="12" cy="3" r="1.3" fill="#ff4444"/></svg>`,
-  crash: `<svg viewBox="0 0 24 24" width="26" height="26" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C9.8 4.5 8.5 8 8.5 12V15.5H15.5V12C15.5 8 14.2 4.5 12 2Z" fill="white" fill-opacity="0.92"/><path d="M10 5C9.5 7.5 9.5 10 9.5 12L10.5 12C10.5 10 10.5 7.5 11 5Z" fill="white" fill-opacity="0.28"/><path d="M8.5 11L5 17L9 15.5Z" fill="white" fill-opacity="0.78"/><path d="M15.5 11L19 17L15 15.5Z" fill="white" fill-opacity="0.78"/><rect x="9.5" y="15" width="5" height="1.2" rx="0.6" fill="black" fill-opacity="0.12"/><path d="M9.5 16.2C9.5 19 10.5 21.5 12 23C13.5 21.5 14.5 19 14.5 16.2Z" fill="#FFD700" fill-opacity="0.95"/><path d="M11 16.2C11 18.5 11.5 20.5 12 22C12.5 20.5 13 18.5 13 16.2Z" fill="white" fill-opacity="0.5"/><circle cx="12" cy="9" r="2.2" fill="none" stroke="#aee4ff" stroke-opacity="0.9" stroke-width="1.4"/><circle cx="12" cy="9" r="1.1" fill="#aee4ff" fill-opacity="0.65"/></svg>`,
-  slots: `<svg viewBox="0 0 24 24" width="26" height="26" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="6.5" width="20" height="13" rx="2.5" fill="white" fill-opacity="0.12" stroke="white" stroke-opacity="0.85" stroke-width="1.3"/><rect x="3.5" y="8.5" width="5" height="9" rx="1.2" fill="white" fill-opacity="0.18"/><rect x="9.5" y="8.5" width="5" height="9" rx="1.2" fill="white" fill-opacity="0.18"/><rect x="15.5" y="8.5" width="5" height="9" rx="1.2" fill="white" fill-opacity="0.18"/><text x="6" y="16" font-size="7.5" font-weight="900" fill="white" text-anchor="middle" font-family="Arial,sans-serif">7</text><text x="12" y="16" font-size="7.5" font-weight="900" fill="#FFD700" text-anchor="middle" font-family="Arial,sans-serif">7</text><text x="18" y="16" font-size="7.5" font-weight="900" fill="white" text-anchor="middle" font-family="Arial,sans-serif">7</text></svg>`,
-  miner: `<svg viewBox="0 0 24 24" width="26" height="26" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="14" r="7.5" fill="white" fill-opacity="0.88"/><circle cx="9.5" cy="11.5" r="2.8" fill="white" fill-opacity="0.25"/><path d="M12 6.5C13.5 4 16 3.2 17.5 4" stroke="white" stroke-opacity="0.85" stroke-width="2" stroke-linecap="round" fill="none"/><circle cx="18" cy="3.5" r="1.8" fill="#FFD700" fill-opacity="0.95"/><line x1="4.5" y1="14" x2="2.5" y2="14" stroke="white" stroke-opacity="0.85" stroke-width="2.2" stroke-linecap="round"/><line x1="19.5" y1="14" x2="21.5" y2="14" stroke="white" stroke-opacity="0.85" stroke-width="2.2" stroke-linecap="round"/><line x1="12" y1="21.5" x2="12" y2="23.5" stroke="white" stroke-opacity="0.85" stroke-width="2.2" stroke-linecap="round"/><line x1="6.9" y1="19.1" x2="5.5" y2="20.5" stroke="white" stroke-opacity="0.85" stroke-width="2.2" stroke-linecap="round"/><line x1="17.1" y1="19.1" x2="18.5" y2="20.5" stroke="white" stroke-opacity="0.85" stroke-width="2.2" stroke-linecap="round"/></svg>`,
+  pvp:      '<span style="font-size:26px;line-height:1">⚔️</span>',
+  free:     '<span style="font-size:26px;line-height:1">🎁</span>',
+  roulette: '<span style="font-size:26px;line-height:1">🎡</span>',
+  crash:    '<span style="font-size:26px;line-height:1">🚀</span>',
+  slots:    '<span style="font-size:26px;line-height:1">🎰</span>',
+  miner:    '<span style="font-size:26px;line-height:1">💣</span>',
 };
 
 function renderCasesPage() {
@@ -1158,6 +1158,8 @@ function _crashRenderControls(phase, multiplier) {
   if (!ctrl) return;
 
   if (phase === 'waiting' && !crashInRound) {
+    // Не перерисовывать если инпут уже отображён — иначе пользователь не сможет напечатать сумму
+    if (document.getElementById('crash-bet-input')) return;
     ctrl.innerHTML = `
       <div class="crash-bet-row">
         <input class="crash-bet-input" id="crash-bet-input" type="number" min="10"
@@ -1170,17 +1172,27 @@ function _crashRenderControls(phase, multiplier) {
         ).join('')}
       </div>`;
   } else if (phase === 'waiting' && crashInRound) {
+    if (ctrl.querySelector('.crash-on-board')) return;
     ctrl.innerHTML = `<div class="crash-on-board">Вы на борту! Ждём старта...</div>`;
   } else if (phase === 'flying' && crashInRound) {
     const won = Math.round(crashMyBet * multiplier);
+    const btn = document.getElementById('btn-crash-cashout');
+    if (btn) {
+      btn.innerHTML = `ВЫВЕСТИ ${_goldStar(18)} ${won.toLocaleString()}`;
+      const hint = ctrl.querySelector('.crash-cashout-hint');
+      if (hint) hint.textContent = `Текущий множитель: ${multiplier.toFixed(2)}x — жми!`;
+      return;
+    }
     ctrl.innerHTML = `
       <button class="btn-crash-cashout" id="btn-crash-cashout" onclick="doCrashCashout()">
         ВЫВЕСТИ ${_goldStar(18)} ${won.toLocaleString()}
       </button>
       <div class="crash-cashout-hint">Текущий множитель: ${multiplier.toFixed(2)}x — жми!</div>`;
   } else if (phase === 'flying') {
+    if (ctrl.querySelector('.crash-watch-msg')) return;
     ctrl.innerHTML = `<div class="crash-watch-msg">Наблюдаете за полётом...</div>`;
   } else {
+    if (ctrl.querySelector('.crash-next-round')) return;
     ctrl.innerHTML = `<div class="crash-next-round">Следующий раунд через несколько секунд...</div>`;
     if (crashInRound) crashInRound = false;
   }

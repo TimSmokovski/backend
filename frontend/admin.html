@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+  <title>Админ панель</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Inter',sans-serif;background:#0e0e1a;color:#fff;min-height:100vh;padding:16px}
+    h1{font-size:20px;font-weight:700;margin-bottom:4px}
+    .subtitle{font-size:13px;color:#888;margin-bottom:20px}
+    .section{background:#1a1a2e;border-radius:14px;padding:16px;margin-bottom:14px}
+    .section-title{font-size:13px;font-weight:600;color:#aaa;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px}
+    input[type=text],input[type=number]{
+      background:#0e0e1a;border:1px solid #333;border-radius:10px;
+      color:#fff;font-family:'Inter',sans-serif;font-size:15px;
+      padding:10px 12px;width:100%;outline:none;
+    }
+    input:focus{border-color:#6c5ce7}
+    .row{display:flex;gap:8px;align-items:center}
+    .row input{flex:1}
+    button{
+      background:#6c5ce7;border:none;border-radius:10px;color:#fff;
+      font-family:'Inter',sans-serif;font-size:14px;font-weight:600;
+      padding:10px 16px;cursor:pointer;white-space:nowrap;
+    }
+    button:active{opacity:.8}
+    button.danger{background:#e74c3c}
+    button.secondary{background:#2d2d4e}
+    .user-list{display:flex;flex-direction:column;gap:6px}
+    .user-card{
+      background:#0e0e1a;border-radius:10px;padding:12px;
+      display:flex;align-items:center;gap:10px;
+    }
+    .user-avatar{
+      width:36px;height:36px;border-radius:50%;background:#6c5ce7;
+      display:flex;align-items:center;justify-content:center;
+      font-size:16px;font-weight:700;flex-shrink:0;
+    }
+    .user-info{flex:1;min-width:0}
+    .user-name{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .user-meta{font-size:12px;color:#888}
+    .user-balance{font-size:15px;font-weight:700;color:#ffd700;white-space:nowrap}
+    .user-actions{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+    .user-actions button{font-size:12px;padding:6px 10px}
+    .roulette-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+    .roulette-label{font-size:13px;width:60px;flex-shrink:0}
+    .roulette-row input{width:70px;flex:none;text-align:center}
+    .roulette-mult{font-size:12px;color:#888;width:30px}
+    .toast{
+      position:fixed;bottom:80px;left:50%;transform:translateX(-50%);
+      background:#6c5ce7;border-radius:10px;padding:10px 18px;
+      font-size:14px;font-weight:600;z-index:999;opacity:0;
+      transition:opacity .2s;pointer-events:none;white-space:nowrap;
+    }
+    .toast.show{opacity:1}
+    #access-denied{text-align:center;padding:60px 20px}
+    #access-denied .icon{font-size:64px;margin-bottom:16px}
+    #access-denied p{color:#888;font-size:15px}
+    #loader-screen{text-align:center;padding:80px 20px;color:#888}
+    .search-row{display:flex;gap:8px;margin-bottom:12px}
+    .search-row input{flex:1}
+  </style>
+</head>
+<body>
+  <div id="loader-screen">Загрузка...</div>
+  <div id="access-denied" style="display:none">
+    <div class="icon">🔒</div>
+    <h2 style="margin-bottom:8px">Нет доступа</h2>
+    <p>Эта страница только для администраторов</p>
+  </div>
+  <div id="admin-panel" style="display:none">
+    <h1>⚙️ Админ панель</h1>
+    <div class="subtitle" id="admin-subtitle">CaseArena</div>
+
+    <!-- Поиск пользователей -->
+    <div class="section">
+      <div class="section-title">👥 Пользователи</div>
+      <div class="search-row">
+        <input type="text" id="search-input" placeholder="Имя, @username или ID..." oninput="searchUsers()">
+      </div>
+      <div id="user-list" class="user-list">
+        <div style="color:#888;font-size:13px;text-align:center;padding:10px">Загрузка...</div>
+      </div>
+    </div>
+
+    <!-- Рулетка -->
+    <div class="section">
+      <div class="section-title">🎡 Веса рулетки</div>
+      <div id="roulette-settings"></div>
+      <div style="margin-top:12px">
+        <button onclick="saveRoulette()">Сохранить веса</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Модалка выдачи звёзд -->
+  <div id="give-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;align-items:flex-end;justify-content:center">
+    <div style="background:#1a1a2e;border-radius:20px 20px 0 0;padding:20px;width:100%;max-width:480px">
+      <div style="font-size:16px;font-weight:700;margin-bottom:4px">⭐ Выдать звёзды</div>
+      <div id="give-user-name" style="font-size:13px;color:#888;margin-bottom:14px"></div>
+      <div style="font-size:13px;color:#aaa;margin-bottom:6px">Действие</div>
+      <div style="display:flex;gap:8px;margin-bottom:14px">
+        <button id="btn-add" onclick="setAction('add')" style="flex:1">➕ Добавить</button>
+        <button id="btn-set" onclick="setAction('set')" class="secondary" style="flex:1">🔧 Установить</button>
+      </div>
+      <div style="font-size:13px;color:#aaa;margin-bottom:6px">Количество звёзд</div>
+      <input type="number" id="give-amount" value="1000" style="margin-bottom:14px">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
+        ${[100,500,1000,5000,10000].map(v => `<button class="secondary" style="flex:1;min-width:50px;padding:8px" onclick="document.getElementById('give-amount').value=${v}">${v}</button>`).join('')}
+      </div>
+      <div style="display:flex;gap:8px">
+        <button style="flex:1;background:#2d2d4e" onclick="closeGiveModal()">Отмена</button>
+        <button style="flex:1" onclick="confirmGive()">Выдать</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const tg = window.Telegram?.WebApp;
+    const API_BASE = window.location.hostname === 'localhost'
+      ? 'http://localhost:8000'
+      : 'https://backend-production-128d.up.railway.app';
+
+    let _giveUserId = null;
+    let _giveAction = 'add';
+    let _searchTimer = null;
+
+    async function api(method, path, data = null) {
+      const opts = {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Init-Data': tg?.initData || 'test_user',
+        },
+      };
+      if (data) opts.body = JSON.stringify(data);
+      try {
+        const res = await fetch(API_BASE + path, opts);
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          return { __error: true, status: res.status, detail: err.detail || 'Ошибка' };
+        }
+        return await res.json();
+      } catch(e) {
+        return { __error: true, detail: 'Нет соединения' };
+      }
+    }
+
+    function toast(msg) {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.classList.add('show');
+      setTimeout(() => el.classList.remove('show'), 2500);
+    }
+
+    async function init() {
+      if (tg) { tg.ready(); tg.expand(); tg.setHeaderColor('#0e0e1a'); tg.setBackgroundColor('#0e0e1a'); }
+
+      const check = await api('GET', '/admin/check');
+      document.getElementById('loader-screen').style.display = 'none';
+
+      if (!check || check.__error) {
+        document.getElementById('access-denied').style.display = 'block';
+        return;
+      }
+
+      document.getElementById('admin-subtitle').textContent = `Вы вошли как @${check.user}`;
+      document.getElementById('admin-panel').style.display = 'block';
+      loadUsers();
+      loadRouletteSettings();
+    }
+
+    function renderUser(u) {
+      const initial = (u.name || u.username || '?')[0].toUpperCase();
+      return `
+        <div class="user-card" id="user-${u.id}">
+          <div class="user-avatar">${initial}</div>
+          <div class="user-info">
+            <div class="user-name">${u.name || 'Без имени'}</div>
+            <div class="user-meta">${u.username ? '@' + u.username : ''} · ID: ${u.id}</div>
+            <div class="user-actions">
+              <button onclick="openGiveModal(${u.id}, '${(u.name || u.username || 'Игрок').replace(/'/g,'\\'')}')">⭐ Звёзды</button>
+              <button class="secondary" onclick="resetCooldown(${u.id})">🔄 Сброс кейса</button>
+            </div>
+          </div>
+          <div class="user-balance">⭐ ${(u.balance || 0).toLocaleString('ru')}</div>
+        </div>`;
+    }
+
+    async function loadUsers(q = '') {
+      const list = document.getElementById('user-list');
+      const users = await api('GET', `/admin/users${q ? '?q=' + encodeURIComponent(q) : ''}`);
+      if (!users || users.__error) {
+        list.innerHTML = `<div style="color:#e74c3c;font-size:13px">${users?.detail || 'Ошибка загрузки'}</div>`;
+        return;
+      }
+      if (!users.length) {
+        list.innerHTML = '<div style="color:#888;font-size:13px;text-align:center;padding:10px">Ничего не найдено</div>';
+        return;
+      }
+      list.innerHTML = users.map(renderUser).join('');
+    }
+
+    function searchUsers() {
+      clearTimeout(_searchTimer);
+      _searchTimer = setTimeout(() => {
+        loadUsers(document.getElementById('search-input').value.trim());
+      }, 400);
+    }
+
+    async function loadRouletteSettings() {
+      const data = await api('GET', '/admin/settings');
+      if (!data || data.__error) return;
+      const wrap = document.getElementById('roulette-settings');
+      wrap.innerHTML = data.roulette.map((s, i) => `
+        <div class="roulette-row">
+          <div class="roulette-label">${s.name}</div>
+          <div class="roulette-mult">${s.mult}x</div>
+          <input type="number" id="rw-${i}" value="${s.weight}" min="0" style="width:70px">
+          <div style="font-size:12px;color:#888">вес</div>
+        </div>`).join('');
+      window._rouletteCount = data.roulette.length;
+    }
+
+    async function saveRoulette() {
+      const n = window._rouletteCount || 0;
+      const weights = Array.from({length: n}, (_, i) => parseInt(document.getElementById(`rw-${i}`)?.value) || 0);
+      const res = await api('POST', '/admin/settings/roulette', { weights });
+      if (res?.ok) toast('✅ Веса сохранены');
+      else toast('❌ ' + (res?.detail || 'Ошибка'));
+    }
+
+    function openGiveModal(userId, userName) {
+      _giveUserId = userId;
+      _giveAction = 'add';
+      document.getElementById('give-user-name').textContent = userName + ' (ID: ' + userId + ')';
+      document.getElementById('give-amount').value = 1000;
+      document.getElementById('btn-add').style.background = '#6c5ce7';
+      document.getElementById('btn-set').style.background = '#2d2d4e';
+      document.getElementById('give-modal').style.display = 'flex';
+    }
+
+    function closeGiveModal() {
+      document.getElementById('give-modal').style.display = 'none';
+    }
+
+    function setAction(action) {
+      _giveAction = action;
+      document.getElementById('btn-add').style.background = action === 'add' ? '#6c5ce7' : '#2d2d4e';
+      document.getElementById('btn-set').style.background = action === 'set' ? '#6c5ce7' : '#2d2d4e';
+    }
+
+    async function confirmGive() {
+      const amount = parseInt(document.getElementById('give-amount').value) || 0;
+      if (amount <= 0 && _giveAction !== 'set') { toast('Введите сумму'); return; }
+      const res = await api('POST', `/admin/users/${_giveUserId}/balance`, { amount, action: _giveAction });
+      if (res?.ok) {
+        const newBal = res.user.balance;
+        const card = document.getElementById(`user-${_giveUserId}`);
+        if (card) card.querySelector('.user-balance').textContent = '⭐ ' + newBal.toLocaleString('ru');
+        toast(`✅ Баланс: ${newBal.toLocaleString('ru')} ⭐`);
+        closeGiveModal();
+      } else {
+        toast('❌ ' + (res?.detail || 'Ошибка'));
+      }
+    }
+
+    async function resetCooldown(userId) {
+      const res = await api('POST', `/admin/users/${userId}/reset_cooldown`);
+      if (res?.ok) toast('✅ Кулдаун сброшен');
+      else toast('❌ ' + (res?.detail || 'Ошибка'));
+    }
+
+    document.getElementById('give-modal').addEventListener('click', (e) => {
+      if (e.target === document.getElementById('give-modal')) closeGiveModal();
+    });
+
+    init();
+  </script>
+</body>
+</html>
