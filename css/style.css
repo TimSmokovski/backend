@@ -491,13 +491,14 @@ html, body { height: 100%; overflow: hidden; font-family: 'Inter', sans-serif; b
   flex-shrink: 0; width: 90px; height: 90px;
   background: var(--bg3); border-radius: var(--radius-sm);
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
-  font-size: 32px; border: 2px solid transparent;
+  border: 2px solid transparent; overflow: hidden;
 }
 .spin-item.rare { border-color: rgba(255,215,0,0.5); }
 .spin-item.epic { border-color: rgba(155,89,182,0.5); }
+.spin-item-label { font-size: 13px; font-weight: 700; color: var(--gold); text-align: center; line-height: 1.2; }
 .spin-item-stars { font-size: 10px; color: var(--gold); font-weight: 700; }
 .spin-result { text-align: center; }
-.spin-result-item { font-size: 56px; margin-bottom: 8px; }
+.spin-result-item { font-size: 22px; font-weight: 800; color: var(--gold); margin-bottom: 4px; }
 .spin-result-name { font-size: 18px; font-weight: 700; }
 .spin-result-val { font-size: 16px; color: var(--gold); display: flex; align-items: center; justify-content: center; gap: 4px; margin-top: 4px; }
 .btn-spin {
