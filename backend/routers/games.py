@@ -83,12 +83,21 @@ async def slots_spin(body: dict, user: dict = Depends(get_current_user)):
     bet = int(body.get("bet", 50))
     if user["balance"] < bet:
         raise HTTPException(status_code=400, detail="Недостаточно звёзд")
-    reels = [random.choice(SLOT_EMOJIS) for _ in range(3)]
-    if reels[0] == reels[1] == reels[2]:
-        won, result = bet * SLOT_MULT.get(reels[0], 4), "jackpot"
-    elif reels[0] == reels[1] or reels[1] == reels[2]:
-        won, result = bet * 2, "pair"
+    chance = GLOBAL_WIN_CHANCE
+    r = random.random() * 100
+    if r < chance:
+        if random.random() < chance / 100:
+            symbol = random.choice(SLOT_EMOJIS)
+            reels = [symbol, symbol, symbol]
+            won, result = bet * SLOT_MULT.get(symbol, 4), "jackpot"
+        else:
+            symbol = random.choice(SLOT_EMOJIS)
+            other = random.choice([e for e in SLOT_EMOJIS if e != symbol])
+            reels = [symbol, symbol, symbol]
+            reels[random.randint(0, 2)] = other
+            won, result = bet * 2, "pair"
     else:
+        reels = random.sample(SLOT_EMOJIS, 3)
         won, result = 0, "lose"
     new_balance = await deduct_and_add(user["id"], bet, won)
     return {"reels": reels, "result": result, "won": won, "new_balance": new_balance}

@@ -4,6 +4,7 @@ import aiosqlite
 from datetime import datetime, timedelta
 from database import DB_PATH
 from auth import get_current_user
+from routers import games as _games
 
 router = APIRouter(prefix="/cases", tags=["cases"])
 
@@ -54,7 +55,17 @@ async def open_case(body: dict, user: dict = Depends(get_current_user)):
                     next_at = last + timedelta(hours=24)
                     hours_left = int((next_at - datetime.utcnow()).seconds / 3600)
                     raise HTTPException(status_code=429, detail=f"Следующий кейс через {hours_left} ч.")
-            item = weighted_choice(FREE_ITEMS)
+            chance = _games.GLOBAL_WIN_CHANCE
+            if chance == 100:
+                item = FREE_ITEMS[-1]
+            elif chance == 0:
+                item = FREE_ITEMS[0]
+            else:
+                win_items  = [i for i in FREE_ITEMS if i["stars"] > 0]
+                lose_items = [i for i in FREE_ITEMS if i["stars"] == 0]
+                all_items   = win_items + lose_items
+                all_weights = [i["weight"] * chance for i in win_items] + [i["weight"] * (100 - chance) for i in lose_items]
+                item = random.choices(all_items, weights=all_weights, k=1)[0]
             await db.execute(
                 "UPDATE users SET balance = balance + ?, free_case_at = ? WHERE id = ?",
                 (item["stars"], datetime.utcnow().isoformat(), user["id"]),

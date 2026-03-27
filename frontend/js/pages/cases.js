@@ -1235,7 +1235,9 @@ function _minerStart() {
 function _minerClick(i) {
   if (!_ms?.active || _ms.cells[i] !== null) return;
   const left = MINER_CELLS - _ms.found;
-  const p = Math.min(0.92, (_ms.mines / left) * MINER_HOUSE);
+  const gwc = window.appState?.global_win_chance ?? 50;
+  const effHouse = 0.05 + 2.75 * (1 - gwc / 100); // 100%→0.05, 50%→1.43, 0%→2.80
+  const p = Math.min(0.92, (_ms.mines / left) * effHouse);
 
   if (Math.random() < p) {
     // МИНА
