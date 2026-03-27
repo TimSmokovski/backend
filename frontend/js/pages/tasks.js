@@ -12,7 +12,7 @@ function renderTasksPage() {
   page.innerHTML = `
     <div class="tasks-header">
       <div class="section-title" style="padding:0;font-size:18px">Задания</div>
-      <p>Зарабатывайте билеты, выполняя интересные задания. Эти билеты можно использовать для открытия бесплатных кейсов.</p>
+      <p>Выполняй задания и получай звёзды на свой баланс.</p>
     </div>
     <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;gap:16px">
       <div style="font-size:56px">📋</div>
