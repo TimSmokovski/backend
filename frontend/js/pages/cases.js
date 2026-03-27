@@ -356,16 +356,17 @@ async function doPvpBetCheck(res) {
 
 // ===== FREE CASE =====
 const FREE_ITEMS = [
-  { emoji: '⭐', name: 'Звезда',    stars: 5,   rarity: 'common' },
-  { emoji: '🌊', name: 'Волна',     stars: 10,  rarity: 'common' },
-  { emoji: '🍀', name: 'Клевер',    stars: 15,  rarity: 'common' },
-  { emoji: '🎈', name: 'Шарик',     stars: 20,  rarity: 'common' },
-  { emoji: '🦊', name: 'Лиса',      stars: 30,  rarity: 'uncommon' },
-  { emoji: '⚡', name: 'Молния',    stars: 40,  rarity: 'uncommon' },
-  { emoji: '🎃', name: 'Тыква',     stars: 50,  rarity: 'uncommon' },
-  { emoji: '🧪', name: 'Зелье',     stars: 75,  rarity: 'rare' },
-  { emoji: '👾', name: 'Пришелец',  stars: 90,  rarity: 'rare' },
-  { emoji: '🎒', name: 'Рюкзак',    stars: 100, rarity: 'epic' },
+  { stars: 0,   label: 'Ничего', rarity: 'common' },
+  { stars: 5,   label: '⭐ 5',   rarity: 'common' },
+  { stars: 10,  label: '⭐ 10',  rarity: 'common' },
+  { stars: 15,  label: '⭐ 15',  rarity: 'common' },
+  { stars: 20,  label: '⭐ 20',  rarity: 'common' },
+  { stars: 30,  label: '⭐ 30',  rarity: 'uncommon' },
+  { stars: 40,  label: '⭐ 40',  rarity: 'uncommon' },
+  { stars: 50,  label: '⭐ 50',  rarity: 'uncommon' },
+  { stars: 75,  label: '⭐ 75',  rarity: 'rare' },
+  { stars: 90,  label: '⭐ 90',  rarity: 'rare' },
+  { stars: 100, label: '⭐ 100', rarity: 'epic' },
 ];
 
 function openFreeCase() {
@@ -379,8 +380,7 @@ function openFreeCase() {
       <div class="spin-track" id="spin-track">
         ${spinItems.map(item => `
           <div class="spin-item ${item.rarity === 'epic' ? 'epic' : item.rarity === 'rare' ? 'rare' : ''}">
-            <span>${item.emoji}</span>
-            <span class="spin-item-stars">⭐${item.stars}</span>
+            <span class="spin-item-label">${item.label}</span>
           </div>
         `).join('')}
       </div>
@@ -404,8 +404,8 @@ async function doFreeSpin() {
     return;
   }
 
-  // Находим предмет в списке для анимации
-  const winItem = FREE_ITEMS.find(i => i.emoji === res.item?.emoji) || FREE_ITEMS[0];
+  // Находим предмет в списке для анимации по stars
+  const winItem = FREE_ITEMS.find(i => i.stars === res.item?.stars) || FREE_ITEMS[0];
   const winIdx = FREE_ITEMS.indexOf(winItem);
 
   const track = document.getElementById('spin-track');
@@ -416,19 +416,19 @@ async function doFreeSpin() {
 
   setTimeout(() => {
     const item = res.item || winItem;
+    const localItem = FREE_ITEMS.find(i => i.stars === (res.item?.stars ?? -1)) || winItem;
     document.getElementById('spin-result').innerHTML = `
-      <div class="spin-result-item">${item.emoji}</div>
-      <div class="spin-result-name">${item.name}</div>
-      <div class="spin-result-val">⭐ ${item.stars}</div>
+      <div class="spin-result-item">${localItem.label}</div>
+      <div class="spin-result-val">${localItem.stars > 0 ? `+${localItem.stars} звёзд` : 'Не повезло'}</div>
     `;
     document.getElementById('spin-result').style.display = 'block';
     btn.textContent = '⏰ Завтра снова';
     btn.disabled = true;
     if (res.new_balance !== undefined && window.appState) window.appState.balance = res.new_balance;
     updateBalance();
-    if (item.rarity === 'epic' || item.rarity === 'legendary') {
+    if (localItem.rarity === 'epic') {
       hideModal();
-      showWin(item.emoji, item.name, `⭐ ${item.stars}`);
+      showWin('⭐', `${localItem.stars} звёзд`, `⭐ ${localItem.stars}`);
     }
   }, 3600);
 }
