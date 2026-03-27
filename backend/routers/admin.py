@@ -6,6 +6,11 @@ from auth import get_current_user
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
+ADMIN_IDS = set(
+    int(i.strip()) for i in os.getenv("ADMIN_IDS", "").split(",")
+    if i.strip().lstrip("-").isdigit()
+)
+# fallback: поддержка старого ADMIN_USERNAMES
 ADMIN_USERNAMES = set(
     u.strip().lstrip("@")
     for u in os.getenv("ADMIN_USERNAMES", "").split(",")
@@ -14,8 +19,9 @@ ADMIN_USERNAMES = set(
 
 
 def require_admin(user: dict = Depends(get_current_user)):
+    uid = user.get("id")
     username = (user.get("username") or "").lstrip("@")
-    if not username or username not in ADMIN_USERNAMES:
+    if uid not in ADMIN_IDS and username not in ADMIN_USERNAMES:
         raise HTTPException(status_code=403, detail="Нет доступа")
     return user
 

@@ -11,6 +11,16 @@ load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN", "")
 WEBAPP_URL = os.getenv("WEBAPP_URL", "https://your-frontend.netlify.app")
 
+ADMIN_IDS = set(
+    int(i.strip()) for i in os.getenv("ADMIN_IDS", "").split(",")
+    if i.strip().lstrip("-").isdigit()
+)
+ADMIN_USERNAMES = set(
+    u.strip().lstrip("@")
+    for u in os.getenv("ADMIN_USERNAMES", "").split(",")
+    if u.strip()
+)
+
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
@@ -39,6 +49,18 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 
+async def admin_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
+    username = (user.username or "").lstrip("@")
+    if user.id not in ADMIN_IDS and username not in ADMIN_USERNAMES:
+        await update.message.reply_text("⛔ Нет доступа.")
+        return
+    keyboard = InlineKeyboardMarkup([[
+        InlineKeyboardButton("⚙️ Админ панель", web_app=WebAppInfo(url=WEBAPP_URL + "/admin.html"))
+    ]])
+    await update.message.reply_text("🔑 Добро пожаловать в админ панель:", reply_markup=keyboard)
+
+
 async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "ℹ️ *Команды:*\n"
@@ -55,6 +77,8 @@ async def play(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Нажми кнопку ниже:", reply_markup=keyboard)
 
 
+import asyncio
+
 def main():
     if not BOT_TOKEN:
         print("❌ Укажи BOT_TOKEN в файле .env")
@@ -64,10 +88,12 @@ def main():
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("help", help_cmd))
     app.add_handler(CommandHandler("play", play))
+    app.add_handler(CommandHandler("admin", admin_cmd))
 
     print("✅ Бот запущен!")
     app.run_polling(drop_pending_updates=True)
 
 
 if __name__ == "__main__":
+    asyncio.set_event_loop(asyncio.new_event_loop())
     main()
