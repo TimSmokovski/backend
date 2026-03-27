@@ -153,6 +153,11 @@ async function init() {
 
   if (userData?.__banned) return; // оставляем лоадер навсегда
 
+  // Применяем реальные данные ДО рендера, чтобы не мигал баланс
+  if (userData) {
+    window.appState = { ...window.appState, ...userData };
+  }
+
   try {
     document.getElementById('user-name').textContent = window.appState.name;
     _setTopbarAvatar();
@@ -165,13 +170,6 @@ async function init() {
   }
 
   showApp();
-
-  if (userData) {
-    window.appState = { ...window.appState, ...userData };
-    document.getElementById('user-name').textContent = window.appState.name;
-    _setTopbarAvatar();
-    updateBalance();
-  }
 }
 
 init();

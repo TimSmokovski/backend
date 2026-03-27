@@ -1165,7 +1165,7 @@ function _crashRenderControls(phase, multiplier) {
 // Мины не предопределены — решение принимается при каждом клике (on-the-fly)
 // Вероятность мины = (честная) × MINER_HOUSE, множитель = честный × MINER_CUT
 const MINER_CELLS = 12; // 4 строки × 3 столбца
-const MINER_HOUSE = 1.40; // накрутка вероятности мины (+40%)
+const MINER_HOUSE = 1.10; // накрутка вероятности мины (+10%)
 const MINER_CUT   = 0.93; // выплата 93% от честного за каждый шаг
 
 let _ms = null; // miner state
@@ -1238,7 +1238,7 @@ function _minerClick(i) {
   const _luckRaw = localStorage.getItem('admin_luck_override');
   const luck = _luckRaw !== null ? Math.max(0, Math.min(100, parseInt(_luckRaw) || 50)) : 50;
   const natural = _ms.mines / left;
-  const baseMineP = Math.min(0.92, natural * 1.4);
+  const baseMineP = Math.min(0.92, natural * MINER_HOUSE);
   let p;
   if (luck >= 100) {
     p = 0;
