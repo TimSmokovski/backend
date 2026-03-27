@@ -33,9 +33,21 @@ ROULETTE_SECTIONS = [
     {"name": "0x",   "mult": 0.0},
 ]
 ROULETTE_WEIGHTS = [30, 25, 15, 10, 12, 3, 5]
+GLOBAL_WIN_CHANCE = 50  # 0–100, загружается из БД
 
 SLOT_EMOJIS = ["🍒", "🍋", "🍊", "🍇", "⭐", "💎", "🃏", "7️⃣"]
 SLOT_MULT   = {"💎": 50, "7️⃣": 20, "⭐": 15, "🍇": 10, "🍒": 8, "🍊": 6, "🍋": 5, "🃏": 4}
+
+
+def _chance_weights(chance: int):
+    """Возвращает секции и веса на основе chance 0–100."""
+    win_pairs  = [(s, ROULETTE_WEIGHTS[i]) for i, s in enumerate(ROULETTE_SECTIONS) if s["mult"] > 0]
+    lose_pairs = [(s, ROULETTE_WEIGHTS[i]) for i, s in enumerate(ROULETTE_SECTIONS) if s["mult"] == 0]
+    secs = [s for s, _ in win_pairs] + [s for s, _ in lose_pairs]
+    w    = [wt * chance for _, wt in win_pairs] + [wt * (100 - chance) for _, wt in lose_pairs]
+    if sum(w) == 0:
+        w = [1] * len(w)
+    return secs, w
 
 
 async def deduct_and_add(user_id, deduct, add):
@@ -56,16 +68,11 @@ async def roulette_spin(body: dict, user: dict = Depends(get_current_user)):
         raise HTTPException(status_code=400, detail="Недостаточно звёзд")
     luck = body.get("luck", -1)
     if isinstance(luck, (int, float)) and 0 <= luck <= 100 and _is_admin(user):
-        luck = int(luck)
-        win_pairs = [(s, ROULETTE_WEIGHTS[i]) for i, s in enumerate(ROULETTE_SECTIONS) if s["mult"] > 0]
-        lose_pairs = [(s, ROULETTE_WEIGHTS[i]) for i, s in enumerate(ROULETTE_SECTIONS) if s["mult"] == 0]
-        custom_secs = [s for s, _ in win_pairs] + [s for s, _ in lose_pairs]
-        custom_w = [w * luck for _, w in win_pairs] + [w * (100 - luck) for _, w in lose_pairs]
-        if sum(custom_w) == 0:
-            custom_w = [1] * len(custom_w)
-        section = random.choices(custom_secs, weights=custom_w, k=1)[0]
+        chance = int(luck)  # личная удача админа — перекрывает глобальные шансы
     else:
-        section = random.choices(ROULETTE_SECTIONS, weights=ROULETTE_WEIGHTS, k=1)[0]
+        chance = GLOBAL_WIN_CHANCE
+    secs, w = _chance_weights(chance)
+    section = random.choices(secs, weights=w, k=1)[0]
     won = int(bet * section["mult"])
     new_balance = await deduct_and_add(user["id"], bet, won)
     return {"section": section, "bet": bet, "won": won, "new_balance": new_balance}
@@ -102,23 +109,36 @@ _crash = {
 
 
 def _gen_crash():
-    """High house edge: ~16% early crashes, ~96% crash before 2x."""
+    """Генерирует точку краша с учётом GLOBAL_WIN_CHANCE (0–100)."""
+    c = GLOBAL_WIN_CHANCE  # 0 = всегда краш, 100 = всегда высоко
+    if c == 100:
+        return round(random.uniform(20.0, 100.0), 2)
+    if c == 0:
+        return round(random.uniform(1.01, 1.05), 2)
+    # Чем выше chance, тем ниже вероятность раннего краша
+    early_prob = 0.18 * (1 - c / 100)
     r = random.random()
-    if r < 0.08:
-        return round(random.uniform(1.01, 1.05), 2)  # мгновенный краш
-    if r < 0.18:
-        return round(random.uniform(1.05, 1.25), 2)  # ранний краш
-    val = 1.10 + random.expovariate(3.5)
+    if r < early_prob * 0.44:
+        return round(random.uniform(1.01, 1.05), 2)
+    if r < early_prob:
+        return round(random.uniform(1.05, 1.25), 2)
+    lam = max(0.3, 3.5 * (1 - c / 100) + 0.3)
+    val = 1.10 + random.expovariate(lam)
     val += random.uniform(-0.03, 0.03)
     return max(1.10, round(val, 2))
 
 
 async def crash_loop():
-    # Загружаем веса рулетки из БД при старте (если были изменены через админку)
+    global GLOBAL_WIN_CHANCE
+    # Загружаем веса рулетки из БД при старте
     saved_weights = await get_setting("roulette_weights")
     if saved_weights and len(saved_weights) == len(ROULETTE_WEIGHTS):
         for i, w in enumerate(saved_weights):
             ROULETTE_WEIGHTS[i] = w
+    # Загружаем глобальные шансы
+    saved_chance = await get_setting("global_win_chance")
+    if saved_chance is not None:
+        GLOBAL_WIN_CHANCE = int(saved_chance)
 
     while True:
         _crash.update({

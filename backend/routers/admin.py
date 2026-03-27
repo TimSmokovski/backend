@@ -109,22 +109,14 @@ async def unban_user(body: dict, _admin: dict = Depends(require_admin)):
 
 @router.get("/settings")
 async def get_settings(_admin: dict = Depends(require_admin)):
-    from routers.games import ROULETTE_SECTIONS, ROULETTE_WEIGHTS
-    return {
-        "roulette": [
-            {"name": s["name"], "mult": s["mult"], "weight": ROULETTE_WEIGHTS[i]}
-            for i, s in enumerate(ROULETTE_SECTIONS)
-        ]
-    }
+    from routers.games import GLOBAL_WIN_CHANCE
+    return {"global_win_chance": GLOBAL_WIN_CHANCE}
 
 
-@router.post("/settings/roulette")
-async def set_roulette(body: dict, _admin: dict = Depends(require_admin)):
+@router.post("/settings/chance")
+async def set_global_chance(body: dict, _admin: dict = Depends(require_admin)):
     from routers import games
-    weights = body.get("weights", [])
-    if len(weights) != len(games.ROULETTE_WEIGHTS):
-        raise HTTPException(400, f"Нужно {len(games.ROULETTE_WEIGHTS)} весов")
-    for i, w in enumerate(weights):
-        games.ROULETTE_WEIGHTS[i] = max(0, int(w))
-    await set_setting("roulette_weights", games.ROULETTE_WEIGHTS)
-    return {"ok": True, "weights": games.ROULETTE_WEIGHTS}
+    chance = max(0, min(100, int(body.get("chance", 50))))
+    games.GLOBAL_WIN_CHANCE = chance
+    await set_setting("global_win_chance", chance)
+    return {"ok": True, "chance": chance}
