@@ -181,7 +181,7 @@
       <input type="range" id="global-luck-slider" min="0" max="100" value="50" oninput="onGlobalLuck(this.value)">
       <div class="luck-label"><span>0% — всегда проигрыш</span><span>100% — всегда выигрыш</span></div>
       <button onclick="saveGlobalChance()" style="width:100%">💾 Применить для всех</button>
-      <div style="font-size:11px;color:#666;margin-top:8px;text-align:center">Влияет на рулетку и краш для всех игроков</div>
+      <div style="font-size:11px;color:#666;margin-top:8px;text-align:center">Краш/PvP — для всех игроков (сервер). Рулетка/Слоты/Майнер/Апгрейд — только для тебя (локально).</div>
     </div>
   </div>
 
@@ -484,8 +484,13 @@
     async function saveGlobalChance() {
       const v = parseInt(document.getElementById('global-luck-slider').value);
       const res = await api('POST', '/admin/settings/chance', { chance: v });
-      if (res?.ok) toast('✅ Глобальные шансы: ' + v + '%', '#27ae60');
-      else toast('❌ ' + (res?.detail || 'Ошибка'), '#e74c3c');
+      if (res?.ok) {
+        // Синхронизируем локальную удачу — слоты, майнер и рулетка читают её на клиенте
+        localStorage.setItem('admin_luck_override', v);
+        document.getElementById('luck-slider').value = v;
+        updateLuckDisplay(v);
+        toast('✅ Глобальные шансы: ' + v + '%', '#27ae60');
+      } else toast('❌ ' + (res?.detail || 'Ошибка'), '#e74c3c');
     }
 
     // ===== МОДАЛКА ЗВЁЗД =====
