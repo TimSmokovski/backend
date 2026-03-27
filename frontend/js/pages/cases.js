@@ -333,6 +333,7 @@ function pvpSetBet(val) {
 async function doPvpBet() {
   const amount = parseInt(document.getElementById('pvp-bet-input')?.value) || pvpBetInput;
   if (amount < 10) { showToast('Минимум 10 звёзд'); return; }
+  if (amount > (window.appState?.balance ?? 0)) { showToast('Недостаточно звёзд'); return; }
   const res = await API.pvpBet(amount);
   await doPvpBetCheck(res);
 }
@@ -677,6 +678,7 @@ const SLOT_DURATIONS = [1500, 2000, 2500];
 const CELL_H = 80;
 
 function doSlotsSpin() {
+  if ((window.appState?.balance ?? 0) < slotsBet) { showToast('Недостаточно звёзд'); return; }
   const btn = document.getElementById('btn-slots');
   btn.disabled = true;
   document.getElementById('slots-win').textContent = '';
@@ -1182,17 +1184,18 @@ function openMiner() {
 
 function _minerSetup() {
   const bal = window.appState?.balance ?? 0;
+  const curMines = window._minerMines || 3;
   document.getElementById('miner-content').innerHTML = `
     <div class="miner-section-label">Количество мин</div>
     <div class="miner-mine-row" id="miner-mine-row">
       ${[1,2,3,4,5,6].map(m =>
-        `<button class="miner-mine-btn${m===3?' miner-mine-active':''}" onclick="_minerPick(${m})">${m}</button>`
+        `<button class="miner-mine-btn${m===curMines?' miner-mine-active':''}" onclick="_minerPick(${m})">${m}</button>`
       ).join('')}
     </div>
     <div class="miner-section-label" style="margin-top:14px">Ставка</div>
     <div class="crash-bet-row" style="margin-bottom:8px">
-      <input id="miner-bet" class="crash-bet-input" type="number" min="1" max="${bal}" value="100">
-      <button class="crash-qbet" style="padding:11px 10px;font-size:13px" onclick="document.getElementById('miner-bet').value=Math.max(1,Math.floor((window.appState?.balance??0)/2))">½</button>
+      <input id="miner-bet" class="crash-bet-input" type="number" min="10" max="${bal}" value="100">
+      <button class="crash-qbet" style="padding:11px 10px;font-size:13px" onclick="document.getElementById('miner-bet').value=Math.max(10,Math.floor((window.appState?.balance??0)/2))">½</button>
       <button class="crash-qbet" style="padding:11px 10px;font-size:13px" onclick="document.getElementById('miner-bet').value=window.appState?.balance??0">MAX</button>
     </div>
     <div class="crash-quick-bets" style="margin-bottom:16px">
@@ -1205,7 +1208,7 @@ function _minerSetup() {
       <button class="btn-spin" onclick="_minerStart()">Начать игру</button>
     </div>
   `;
-  window._minerMines = 3;
+  if (!window._minerMines) window._minerMines = 3;
 }
 
 function _minerPick(n) {
@@ -1218,7 +1221,7 @@ function _minerPick(n) {
 function _minerStart() {
   const bet = parseInt(document.getElementById('miner-bet').value) || 0;
   const mines = window._minerMines || 3;
-  if (bet < 1) return showToast('Введите ставку');
+  if (bet < 10) return showToast('Минимальная ставка — 10 звёзд');
   if (bet > (window.appState?.balance ?? 0)) return showToast('Недостаточно звёзд');
 
   if (window.appState) window.appState.balance -= bet;
@@ -1290,13 +1293,14 @@ function _minerRender() {
     return `<div class="miner-cell miner-closed" onclick="_minerClick(${i})"></div>`;
   }).join('');
 
-  const bottom = active && found > 0
+  const bottomInner = active && found > 0
     ? `<button class="btn-miner-cashout" onclick="_minerCashout()">
          ВЫВЕСТИ ${_goldStar(18)} ${potential.toLocaleString()} · ${mult.toFixed(2)}x
        </button>`
     : !active
     ? `<button class="btn-spin btn-again" style="margin-top:4px" onclick="_minerSetup()">Сыграть ещё</button>`
     : `<div class="miner-hint">Открывай ячейки · мин: ${mines}</div>`;
+  const bottom = `<div style="position:sticky;bottom:0;background:var(--bg2);padding:8px 0 0">${bottomInner}</div>`;
 
   el.innerHTML = `
     <div class="miner-game-top">

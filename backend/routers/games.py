@@ -35,6 +35,8 @@ async def deduct_and_add(user_id, deduct, add):
 @router.post("/roulette/spin")
 async def roulette_spin(body: dict, user: dict = Depends(get_current_user)):
     bet = int(body.get("bet", 100))
+    if bet < 10:
+        raise HTTPException(status_code=400, detail="Минимальная ставка — 10 звёзд")
     if user["balance"] < bet:
         raise HTTPException(status_code=400, detail="Недостаточно звёзд")
     section = random.choices(ROULETTE_SECTIONS, weights=ROULETTE_WEIGHTS, k=1)[0]
