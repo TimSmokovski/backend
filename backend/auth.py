@@ -51,10 +51,10 @@ async def get_current_user(
                 (tg_id, name, username, photo_url),
             )
             await db.commit()
-        elif photo_url and photo_url != user["photo_url"]:
+        else:
             await db.execute(
-                "UPDATE users SET photo_url = ? WHERE id = ?",
-                (photo_url, tg_id),
+                "UPDATE users SET name = ?, username = ?, photo_url = COALESCE(?, photo_url) WHERE id = ?",
+                (name, username, photo_url, tg_id),
             )
             await db.commit()
         cursor = await db.execute("SELECT * FROM users WHERE id = ?", (tg_id,))
