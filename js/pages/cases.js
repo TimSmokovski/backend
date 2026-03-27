@@ -581,7 +581,8 @@ function spinRoulette() {
 
   // Исход определяется lossChance, независимо от состава ленты
   const _luckRawR = localStorage.getItem('admin_luck_override');
-  const _localLuckR = _luckRawR !== null ? Math.max(0, Math.min(100, parseInt(_luckRawR) || 50)) : null;
+  const _pR = parseInt(_luckRawR);
+  const _localLuckR = _luckRawR !== null ? Math.max(0, Math.min(100, isNaN(_pR) ? 50 : _pR)) : null;
   const isLoss = _localLuckR !== null
     ? Math.random() * 100 >= _localLuckR
     : Math.random() < ROULETTE_CONFIG.lossChance;
@@ -691,7 +692,8 @@ function doSlotsSpin() {
   const jackpotChance = 0.25 / slotsBet; // 25→1%, 50→0.5%, 100→0.25%, 250→0.1%
   // Исход: jackpotChance джекпот, 29% пара, остальное проигрыш
   const _luckRawS = localStorage.getItem('admin_luck_override');
-  const _localLuckS = _luckRawS !== null ? Math.max(0, Math.min(100, parseInt(_luckRawS) || 50)) : null;
+  const _pS = parseInt(_luckRawS);
+  const _localLuckS = _luckRawS !== null ? Math.max(0, Math.min(100, isNaN(_pS) ? 50 : _pS)) : null;
   const roll = Math.random();
   const rnd = () => SLOT_EMOJIS[Math.floor(Math.random() * SLOT_EMOJIS.length)];
   let results;
@@ -819,7 +821,8 @@ function openUpgrade() {
 function doUpgrade(chance, emoji, name, stars) {
   hideModal();
   const _luckRawU = localStorage.getItem('admin_luck_override');
-  const _localLuckU = _luckRawU !== null ? Math.max(0, Math.min(100, parseInt(_luckRawU) || 50)) : null;
+  const _pU = parseInt(_luckRawU);
+  const _localLuckU = _luckRawU !== null ? Math.max(0, Math.min(100, isNaN(_pU) ? 50 : _pU)) : null;
   const win = Math.random() * 100 < (_localLuckU !== null ? _localLuckU : chance);
   setTimeout(() => {
     if (win) {
@@ -1266,7 +1269,8 @@ function _minerClick(i) {
   if (!_ms?.active || _ms.cells[i] !== null) return;
   const left = MINER_CELLS - _ms.found;
   const _luckRaw = localStorage.getItem('admin_luck_override');
-  const luck = _luckRaw !== null ? Math.max(0, Math.min(100, parseInt(_luckRaw) || 50)) : 50;
+  const _pM = parseInt(_luckRaw);
+  const luck = _luckRaw !== null ? Math.max(0, Math.min(100, isNaN(_pM) ? 50 : _pM)) : 50;
   const natural = _ms.mines / left;
   const baseMineP = Math.min(0.92, natural * MINER_HOUSE);
   let p;
