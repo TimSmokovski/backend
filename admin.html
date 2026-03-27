@@ -133,6 +133,7 @@
     let _giveUserId = null;
     let _giveAction = 'add';
     let _searchTimer = null;
+    const _usersMap = {};
 
     async function api(method, path, data = null) {
       const opts = {
@@ -190,6 +191,7 @@
     }
 
     function renderUser(u) {
+      _usersMap[u.id] = u;
       const initial = (u.name || u.username || '?')[0].toUpperCase();
       return `
         <div class="user-card" id="user-${u.id}">
@@ -198,7 +200,7 @@
             <div class="user-name">${u.name || 'Без имени'}</div>
             <div class="user-meta">${u.username ? '@' + u.username : ''} · ID: ${u.id}</div>
             <div class="user-actions">
-              <button onclick="openGiveModal(${u.id}, this.dataset.n)" data-n="${(u.name || u.username || 'Игрок').replace(/"/g,'&quot;')}">⭐ Звёзды</button>
+              <button onclick="openGiveModal(${u.id})">⭐ Звёзды</button>
               <button class="secondary" onclick="resetCooldown(${u.id})">🔄 Сброс кейса</button>
             </div>
           </div>
@@ -249,7 +251,9 @@
       else toast('❌ ' + (res?.detail || 'Ошибка'));
     }
 
-    function openGiveModal(userId, userName) {
+    function openGiveModal(userId) {
+      const u = _usersMap[userId];
+      const userName = u ? (u.name || u.username || 'Игрок') : 'Игрок';
       _giveUserId = userId;
       _giveAction = 'add';
       document.getElementById('give-user-name').textContent = userName + ' (ID: ' + userId + ')';
