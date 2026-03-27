@@ -114,7 +114,10 @@
 
   <!-- Панель -->
   <div id="admin-panel" style="display:none">
-    <h1>⚙️ Админ панель</h1>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+      <h1>⚙️ Админ панель</h1>
+      <button class="secondary" style="padding:8px 14px;font-size:13px" onclick="resetToLogin()">← Выйти</button>
+    </div>
     <div class="subtitle" id="admin-subtitle">DC_GalaxySpinBot</div>
 
     <!-- Мой баланс -->
@@ -254,9 +257,11 @@
 
     function resetToLogin() {
       document.getElementById('access-denied').style.display = 'none';
+      document.getElementById('admin-panel').style.display = 'none';
       document.getElementById('login-screen').style.display = 'block';
       document.getElementById('login-btn').textContent = 'Войти в панель';
       document.getElementById('login-btn').disabled = false;
+      _myUserId = null;
     }
 
     async function doLogin() {
