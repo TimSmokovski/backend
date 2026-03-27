@@ -26,15 +26,17 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     ref = context.args[0] if context.args else None
 
-    # Сохраняем реферала (можно доработать через API)
+    # Передаём ref_id в URL Mini App — фронт сам отправит на /ref/apply
+    webapp_url = WEBAPP_URL
     if ref and ref.startswith("ref_"):
         ref_id = ref.replace("ref_", "")
-        # TODO: зарегистрировать реферала через API
+        sep = "&" if "?" in WEBAPP_URL else "?"
+        webapp_url = f"{WEBAPP_URL}{sep}ref={ref_id}"
 
     keyboard = InlineKeyboardMarkup([[
         InlineKeyboardButton(
             "🎰 Играть",
-            web_app=WebAppInfo(url=WEBAPP_URL)
+            web_app=WebAppInfo(url=webapp_url)
         )
     ]])
 

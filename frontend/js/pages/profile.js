@@ -1,8 +1,13 @@
 // ===== PROFILE PAGE =====
-function renderProfilePage() {
+let _refLink = null;
+
+async function renderProfilePage() {
   const page = document.getElementById('page-profile');
-  const ref = MOCK.referral;
   const user = window.appState || MOCK.user;
+
+  const refData = await API.getReferral().catch(() => null) || MOCK.referral;
+  _refLink = refData.ref_link || `https://t.me/YourBot?start=ref_${user?.id || ''}`;
+  const ref = refData;
 
   page.innerHTML = `
     <div class="profile-ref-card">
@@ -74,10 +79,9 @@ function openAdminPanel() {
 }
 
 function doInvite() {
-  const user = window.appState;
-  const link = `https://t.me/YourBot?start=ref_${user?.id || 'user'}`;
-  if (tg?.switchInlineQuery) {
-    tg.switchInlineQuery(`Играй со мной в DC_GalaxySpinBot и получи бонус! ${link}`);
+  const link = _refLink || `https://t.me/YourBot?start=ref_${window.appState?.id || ''}`;
+  if (tg?.openTelegramLink) {
+    tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent('🎰 Играй со мной и получи бонус!')}`);
   } else {
     copyToClipboard(link);
     showToast('🔗 Ссылка скопирована!');
@@ -85,8 +89,7 @@ function doInvite() {
 }
 
 function copyLink() {
-  const user = window.appState;
-  const link = `https://t.me/YourBot?start=ref_${user?.id || 'user'}`;
+  const link = _refLink || `https://t.me/YourBot?start=ref_${window.appState?.id || ''}`;
   copyToClipboard(link);
   showToast('📋 Ссылка скопирована!');
 }

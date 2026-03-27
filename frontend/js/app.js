@@ -145,6 +145,13 @@ function showApp() {
 }
 
 async function init() {
+  // Применяем реферала если пришли по реф-ссылке (fire & forget)
+  const _refParam = new URLSearchParams(window.location.search).get('ref')
+    || (tg?.initDataUnsafe?.start_param?.startsWith('ref_')
+        ? tg.initDataUnsafe.start_param.replace('ref_', '')
+        : null);
+  if (_refParam) API.applyRef(_refParam);
+
   // Проверяем бан до показа приложения
   const userData = await Promise.race([
     API.getMe(),

@@ -1,10 +1,14 @@
 import json
+import os
 from fastapi import APIRouter, Depends, HTTPException
 import aiosqlite
 from database import DB_PATH
 from auth import get_current_user
 
 router = APIRouter(tags=["social"])
+
+BOT_USERNAME = os.getenv("BOT_USERNAME", "YourBot")
+REF_BONUS = 100  # звёзд за каждого приглашённого
 
 
 @router.get("/tasks")
@@ -82,7 +86,36 @@ async def get_referral(user: dict = Depends(get_current_user)):
     async with aiosqlite.connect(DB_PATH) as db:
         cur = await db.execute("SELECT COUNT(*) FROM users WHERE ref_by = ?", (user["id"],))
         count = (await cur.fetchone())[0]
-    return {"friends": count, "earned": count * 100, "ref_link": f"https://t.me/YourBot?start=ref_{user['id']}"}
+    return {
+        "friends": count,
+        "earned": count * REF_BONUS,
+        "ref_link": f"https://t.me/{BOT_USERNAME}?start=ref_{user['id']}",
+    }
+
+
+@router.post("/ref/apply")
+async def apply_referral(body: dict, user: dict = Depends(get_current_user)):
+    raw = body.get("ref_id", "")
+    try:
+        ref_id = int(str(raw).replace("ref_", ""))
+    except Exception:
+        return {"ok": False, "detail": "bad ref_id"}
+    if ref_id == user["id"]:
+        return {"ok": False, "detail": "self-ref"}
+    async with aiosqlite.connect(DB_PATH) as db:
+        # Применяем только если реферал ещё не установлен
+        cur = await db.execute("SELECT ref_by FROM users WHERE id = ?", (user["id"],))
+        row = await cur.fetchone()
+        if row and row[0]:
+            return {"ok": False, "detail": "already set"}
+        # Проверяем что реферер существует
+        cur2 = await db.execute("SELECT id FROM users WHERE id = ?", (ref_id,))
+        if not await cur2.fetchone():
+            return {"ok": False, "detail": "referrer not found"}
+        await db.execute("UPDATE users SET ref_by = ? WHERE id = ?", (ref_id, user["id"]))
+        await db.execute("UPDATE users SET balance = balance + ? WHERE id = ?", (REF_BONUS, ref_id))
+        await db.commit()
+    return {"ok": True}
 
 
 @router.get("/leaderboard")

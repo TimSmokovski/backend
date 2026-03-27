@@ -50,6 +50,7 @@ const API = {
   getTasks: ()                  => apiCall('GET', '/tasks'),
   completeTask: (id)            => apiCall('POST', `/tasks/${id}/complete`),
   getReferral: ()               => apiCall('GET', '/referral'),
+  applyRef: (ref_id)           => apiCall('POST', '/ref/apply', { ref_id }),
   openCase: (type)              => apiCall('POST', '/cases/open', { type, ..._adminLuck() }),
   recentWins: ()                => apiCall('GET', '/cases/recent'),
   recordWin: (emoji, name, stars) => apiCall('POST', '/cases/record_win', { emoji, name, stars }),
