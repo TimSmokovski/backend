@@ -90,10 +90,13 @@ _crash = {
 
 
 def _gen_crash():
-    """Min 1.09, ~70% crash before 2x, irregular non-round values."""
-    # Exponential distribution: P(crash < 2x) ≈ 0.70
+    """Rare 1.01/1.06 crashes, min 1.09, ~70% before 2x, irregular values."""
+    r = random.random()
+    if r < 0.04:
+        return 1.01   # редкий мгновенный краш
+    if r < 0.09:
+        return 1.06   # редкий ранний краш
     val = 1.09 + random.expovariate(1.323)
-    # Small noise so values aren't predictably round
     val += random.uniform(-0.04, 0.04)
     return max(1.09, round(val, 2))
 
@@ -130,7 +133,7 @@ async def crash_loop():
             if not _crash["extended"] and _crash["players"]:
                 all_out = all(v["cashed_out"] for v in _crash["players"].values())
                 if all_out:
-                    _crash["crash_point"] = round(mult * 2, 2)
+                    _crash["crash_point"] = round(mult * random.uniform(1.8, 2.2), 2)
                     _crash["extended"] = True
 
             if mult >= _crash["crash_point"]:
