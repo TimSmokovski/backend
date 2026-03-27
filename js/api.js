@@ -16,6 +16,13 @@ async function apiCall(method, path, data = null) {
   if (data) opts.body = JSON.stringify(data);
   try {
     const res = await fetch(API_BASE + path, opts);
+    if (res.status === 403) {
+      const data = await res.json().catch(() => ({}));
+      if ((data.detail || '').includes('заблокирован')) {
+        return { __banned: true };
+      }
+      throw new Error(`HTTP 403`);
+    }
     if (res.status === 429 || res.status === 400) {
       const data = await res.json();
       return { __error: true, detail: data.detail || 'Ошибка' };
