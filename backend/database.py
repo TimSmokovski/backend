@@ -133,6 +133,13 @@ async def init_db():
         except Exception:
             pass
 
+        # Миграция: добавляем banned если колонки ещё нет
+        try:
+            await db.execute("ALTER TABLE users ADD COLUMN banned INTEGER DEFAULT 0")
+            await db.commit()
+        except Exception:
+            pass
+
         # Заполняем задания
         cursor = await db.execute("SELECT COUNT(*) FROM tasks")
         count = (await cursor.fetchone())[0]

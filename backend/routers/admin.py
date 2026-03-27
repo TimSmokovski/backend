@@ -28,7 +28,7 @@ def require_admin(user: dict = Depends(get_current_user)):
 
 @router.get("/check")
 async def admin_check(user: dict = Depends(require_admin)):
-    return {"ok": True, "user": user.get("username")}
+    return {"ok": True, "user": user.get("username"), "user_id": user.get("id")}
 
 
 @router.get("/users")
@@ -38,14 +38,14 @@ async def list_users(q: str = "", _admin: dict = Depends(require_admin)):
         if q:
             uid = int(q) if q.lstrip("-").isdigit() else -1
             cur = await db.execute(
-                "SELECT id, name, username, balance FROM users "
+                "SELECT id, name, username, balance, banned FROM users "
                 "WHERE username LIKE ? OR name LIKE ? OR id = ? "
                 "ORDER BY balance DESC LIMIT 20",
                 (f"%{q}%", f"%{q}%", uid),
             )
         else:
             cur = await db.execute(
-                "SELECT id, name, username, balance FROM users "
+                "SELECT id, name, username, balance, banned FROM users "
                 "ORDER BY balance DESC LIMIT 50"
             )
         rows = await cur.fetchall()
@@ -78,6 +78,33 @@ async def reset_cooldown(user_id: int, _admin: dict = Depends(require_admin)):
         await db.execute("UPDATE users SET free_case_at = NULL WHERE id = ?", (user_id,))
         await db.commit()
     return {"ok": True}
+
+
+@router.post("/ban")
+async def ban_user(body: dict, _admin: dict = Depends(require_admin)):
+    username = (body.get("username") or "").strip().lstrip("@")
+    if not username:
+        raise HTTPException(400, "Укажите username")
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        cur = await db.execute("SELECT id, username FROM users WHERE username = ?", (username,))
+        row = await cur.fetchone()
+        if not row:
+            raise HTTPException(404, "Пользователь не найден")
+        await db.execute("UPDATE users SET banned = 1 WHERE username = ?", (username,))
+        await db.commit()
+    return {"ok": True, "banned": username}
+
+
+@router.post("/unban")
+async def unban_user(body: dict, _admin: dict = Depends(require_admin)):
+    username = (body.get("username") or "").strip().lstrip("@")
+    if not username:
+        raise HTTPException(400, "Укажите username")
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("UPDATE users SET banned = 0 WHERE username = ?", (username,))
+        await db.commit()
+    return {"ok": True, "unbanned": username}
 
 
 @router.get("/settings")

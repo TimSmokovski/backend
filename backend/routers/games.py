@@ -1,10 +1,25 @@
 import random
 import math
 import asyncio
+import os
 from fastapi import APIRouter, Depends, HTTPException
 import aiosqlite
 from database import DB_PATH, get_setting
 from auth import get_current_user
+
+_ADMIN_IDS = set(
+    int(i.strip()) for i in os.getenv("ADMIN_IDS", "").split(",")
+    if i.strip().lstrip("-").isdigit()
+)
+_ADMIN_USERNAMES = set(
+    u.strip().lstrip("@")
+    for u in os.getenv("ADMIN_USERNAMES", "").split(",")
+    if u.strip()
+)
+
+
+def _is_admin(user: dict) -> bool:
+    return user["id"] in _ADMIN_IDS or (user.get("username") or "").lstrip("@") in _ADMIN_USERNAMES
 
 router = APIRouter(tags=["games"])
 
@@ -39,7 +54,18 @@ async def roulette_spin(body: dict, user: dict = Depends(get_current_user)):
         raise HTTPException(status_code=400, detail="Минимальная ставка — 10 звёзд")
     if user["balance"] < bet:
         raise HTTPException(status_code=400, detail="Недостаточно звёзд")
-    section = random.choices(ROULETTE_SECTIONS, weights=ROULETTE_WEIGHTS, k=1)[0]
+    luck = body.get("luck", -1)
+    if isinstance(luck, (int, float)) and 0 <= luck <= 100 and _is_admin(user):
+        luck = int(luck)
+        win_pairs = [(s, ROULETTE_WEIGHTS[i]) for i, s in enumerate(ROULETTE_SECTIONS) if s["mult"] > 0]
+        lose_pairs = [(s, ROULETTE_WEIGHTS[i]) for i, s in enumerate(ROULETTE_SECTIONS) if s["mult"] == 0]
+        custom_secs = [s for s, _ in win_pairs] + [s for s, _ in lose_pairs]
+        custom_w = [w * luck for _, w in win_pairs] + [w * (100 - luck) for _, w in lose_pairs]
+        if sum(custom_w) == 0:
+            custom_w = [1] * len(custom_w)
+        section = random.choices(custom_secs, weights=custom_w, k=1)[0]
+    else:
+        section = random.choices(ROULETTE_SECTIONS, weights=ROULETTE_WEIGHTS, k=1)[0]
     won = int(bet * section["mult"])
     new_balance = await deduct_and_add(user["id"], bet, won)
     return {"section": section, "bet": bet, "won": won, "new_balance": new_balance}

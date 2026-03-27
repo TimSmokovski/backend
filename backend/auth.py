@@ -59,4 +59,7 @@ async def get_current_user(
             await db.commit()
         cursor = await db.execute("SELECT * FROM users WHERE id = ?", (tg_id,))
         user = await cursor.fetchone()
-        return dict(user)
+        user_dict = dict(user)
+    if user_dict.get("banned"):
+        raise HTTPException(status_code=403, detail="Ваш аккаунт заблокирован")
+    return user_dict
