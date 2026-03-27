@@ -7,7 +7,7 @@ function renderProfilePage() {
   page.innerHTML = `
     <div class="profile-ref-card">
       <h2>Приглашай друзей и получай<br>10% от их пополнений!</h2>
-      <p>А ты знал что у тебя есть как минимум 1 человек, кто даст не более 30${_goldStar(14)} в день.</p>
+      <p style="color:#aaa;font-size:13px;margin-top:6px">Реферальный бонус начисляется автоматически и навсегда — за каждого приглашённого друга.</p>
       <div class="ref-stats">
         <div class="ref-stat">
           <div class="ref-stat-val">${ref.friends}</div>
@@ -23,13 +23,21 @@ function renderProfilePage() {
         <button class="btn-copy" onclick="copyLink()" title="Скопировать ссылку">📋</button>
       </div>
     </div>
-    <div class="gifts-section">
-      <h3>Ваши подарки</h3>
-      <div class="gifts-empty">
-        <div style="font-size:48px">🎁</div>
-        <p>У вас ещё нет подарков</p>
-        <button class="btn-add-gift" onclick="openFreeCase()">Получить бесплатный кейс</button>
-      </div>
+
+    <div style="margin:0 12px 16px;padding:20px;background:var(--card);border-radius:var(--radius);border:1px solid rgba(255,255,255,0.06);text-align:center">
+      <img src="assets/tg_star.png" alt="⭐" style="width:72px;height:72px;object-fit:contain;filter:drop-shadow(0 0 18px #ffd70088);margin-bottom:12px">
+      <div style="font-size:15px;font-weight:700;margin-bottom:4px">Вывод звёзд</div>
+      <div style="font-size:13px;color:#888;margin-bottom:16px">Накопи звёзды и выведи их в Telegram</div>
+      <button onclick="showToast('⏳ Вывод будет доступен совсем скоро!')" style="
+        width:100%;padding:14px;border:none;border-radius:14px;cursor:pointer;
+        background:linear-gradient(135deg,#f5c842,#f39c12);
+        color:#1a1200;font-size:15px;font-weight:800;
+        display:flex;align-items:center;justify-content:center;gap:8px;
+        box-shadow:0 4px 20px #f5c84244;letter-spacing:0.3px;
+      ">
+        <img src="assets/tg_star.png" alt="⭐" style="width:20px;height:20px;object-fit:contain">
+        Вывести звёзды
+      </button>
     </div>
     <div style="margin:0 12px 20px;padding:16px;background:var(--card);border-radius:var(--radius);border:1px solid rgba(255,255,255,0.06)">
       <div style="font-size:14px;font-weight:700;margin-bottom:12px">Твой профиль</div>
