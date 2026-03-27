@@ -748,45 +748,6 @@ function doSlotsSpin() {
   }, 2700);
 }
 
-// ===== EGGS =====
-const EGGS = [
-  { emoji: '🥚', name: 'Обычное', price: 50, items: ['🦊','🌊','⚡'] },
-  { emoji: '🪺', name: 'Гнездо', price: 150, items: ['👾','🌿','🧪'] },
-  { emoji: '🐉', name: 'Дракона', price: 500, items: ['🐉','💎','🧞'] },
-];
-let selectedEgg = 0;
-
-function openEggs() {
-  showModal(`
-    <div class="modal-close-bar"><div class="modal-close-handle"></div></div>
-    <div class="pvp-title">🥚 Яйца</div>
-    <div class="pvp-sub">Выбери яйцо и вскрой сюрприз</div>
-    <div class="eggs-grid">
-      ${EGGS.map((e, i) => `
-        <div class="egg-item ${i === selectedEgg ? 'selected' : ''}" onclick="selectEgg(${i})">
-          <div class="egg-emoji">${e.emoji}</div>
-          <div class="egg-name">${e.name}</div>
-          <div class="egg-price">${_goldStar(14)} ${e.price}</div>
-        </div>
-      `).join('')}
-    </div>
-    <button class="btn-open-egg" onclick="doOpenEgg()">🥚 Открыть · ${_goldStar(16)} ${EGGS[selectedEgg].price}</button>
-  `);
-}
-
-function selectEgg(i) { selectedEgg = i; openEggs(); }
-
-function doOpenEgg() {
-  const egg = EGGS[selectedEgg];
-  const itemEmoji = egg.items[Math.floor(Math.random() * egg.items.length)];
-  const item = ITEMS.find(it => it.emoji === itemEmoji) || ITEMS[0];
-  hideModal();
-  if (window.appState) window.appState.balance += item.stars - egg.price;
-  updateBalance();
-  if (item.stars >= 100) API.recordWin(itemEmoji, item.name, item.stars);
-  showWin(itemEmoji, item.name, `⭐ ${item.stars}`);
-}
-
 // ===== UPGRADE =====
 function openUpgrade() {
   const fromItem = ITEMS[Math.floor(Math.random() * 4)];
@@ -1239,8 +1200,10 @@ function _minerSetup() {
         `<button class="crash-qbet" onclick="document.getElementById('miner-bet').value=${b}">${_goldStar(12)} ${b}</button>`
       ).join('')}
     </div>
-    <button class="btn-spin" onclick="_minerStart()">Начать игру</button>
-    <div class="miner-rules">Поле 4×3 · Открывай ячейки · Бери выигрыш в любой момент</div>
+    <div class="miner-rules" style="margin-bottom:12px">Поле 4×3 · Открывай ячейки · Бери выигрыш в любой момент</div>
+    <div style="position:sticky;bottom:0;background:var(--bg2);padding:8px 0 0">
+      <button class="btn-spin" onclick="_minerStart()">Начать игру</button>
+    </div>
   `;
   window._minerMines = 3;
 }
