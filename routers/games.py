@@ -96,7 +96,7 @@ def _gen_crash():
         return 1.01   # редкий мгновенный краш
     if r < 0.09:
         return 1.06   # редкий ранний краш
-    val = 1.09 + random.expovariate(1.323)
+    val = 1.09 + random.expovariate(2.8)
     val += random.uniform(-0.04, 0.04)
     return max(1.09, round(val, 2))
 
