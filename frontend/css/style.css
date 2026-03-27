@@ -309,10 +309,10 @@ html, body { height: 100%; overflow: hidden; font-family: 'Inter', sans-serif; b
 .miner-mine-btn { flex:1; padding:10px 4px; background:var(--bg3); border:1px solid rgba(255,255,255,0.07); border-radius:10px; color:var(--text2); font-size:14px; font-weight:700; cursor:pointer; text-align:center; transition:all 0.15s; }
 .miner-mine-active { background:linear-gradient(135deg,#546e7a,#37474f); border-color:rgba(144,164,174,0.45); color:white; }
 .miner-rules { font-size:11px; color:var(--text3); text-align:center; margin-top:12px; padding:10px; background:var(--bg3); border-radius:10px; }
-.miner-game-top { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
-.miner-big-mult { font-size:36px; font-weight:900; color:var(--gold); line-height:1; }
+.miner-game-top { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
+.miner-big-mult { font-size:28px; font-weight:900; color:var(--gold); line-height:1; }
 .miner-small-label { font-size:10px; color:var(--text3); letter-spacing:0.5px; }
-.miner-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:12px; }
+.miner-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:8px; }
 .miner-cell { aspect-ratio:1; border-radius:14px; display:flex; align-items:center; justify-content:center; font-size:28px; transition:transform 0.1s; }
 .miner-closed { background:var(--bg3); border:1px solid rgba(255,255,255,0.08); cursor:pointer; }
 .miner-closed:active { transform:scale(0.9); }

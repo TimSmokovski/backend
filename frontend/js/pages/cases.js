@@ -1186,24 +1186,24 @@ function _minerSetup() {
   const bal = window.appState?.balance ?? 0;
   const curMines = window._minerMines || 3;
   document.getElementById('miner-content').innerHTML = `
-    <div class="miner-section-label">Количество мин</div>
-    <div class="miner-mine-row" id="miner-mine-row">
-      ${[1,2,3,4,5,6].map(m =>
-        `<button class="miner-mine-btn${m===curMines?' miner-mine-active':''}" onclick="_minerPick(${m})">${m}</button>`
-      ).join('')}
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+      <span class="miner-section-label" style="white-space:nowrap;margin:0">Мины</span>
+      <div class="miner-mine-row" id="miner-mine-row" style="flex:1;margin:0">
+        ${[1,2,3,4,5,6].map(m =>
+          `<button class="miner-mine-btn${m===curMines?' miner-mine-active':''}" onclick="_minerPick(${m})">${m}</button>`
+        ).join('')}
+      </div>
     </div>
-    <div class="miner-section-label" style="margin-top:14px">Ставка</div>
-    <div class="crash-bet-row" style="margin-bottom:8px">
+    <div class="crash-bet-row" style="margin-bottom:6px">
       <input id="miner-bet" class="crash-bet-input" type="number" min="10" max="${bal}" value="100">
       <button class="crash-qbet" style="padding:11px 10px;font-size:13px" onclick="document.getElementById('miner-bet').value=Math.max(10,Math.floor((window.appState?.balance??0)/2))">½</button>
       <button class="crash-qbet" style="padding:11px 10px;font-size:13px" onclick="document.getElementById('miner-bet').value=window.appState?.balance??0">MAX</button>
     </div>
-    <div class="crash-quick-bets" style="margin-bottom:16px">
+    <div class="crash-quick-bets" style="margin-bottom:10px">
       ${[50,100,250,500,1000].map(b =>
         `<button class="crash-qbet" onclick="document.getElementById('miner-bet').value=${b}">${_goldStar(12)} ${b}</button>`
       ).join('')}
     </div>
-    <div class="miner-rules" style="margin-bottom:12px">Поле 4×3 · Открывай ячейки · Бери выигрыш в любой момент</div>
     <div style="position:sticky;bottom:0;background:var(--bg2);padding:8px 0 0">
       <button class="btn-spin" onclick="_minerStart()">Начать игру</button>
     </div>
