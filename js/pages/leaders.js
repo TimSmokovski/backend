@@ -20,20 +20,9 @@ async function renderLeadersPage() {
 
   page.innerHTML = `
     <div class="section-title">Лидеры</div>
-    <div class="leaders-timer">
-      <p>До следующего итога по лидерам</p>
-      <div class="timer-blocks">
-        <div class="timer-block"><div class="timer-val" id="t-days">0</div><div class="timer-label">дней</div></div>
-        <div class="timer-block"><div class="timer-val" id="t-hours">0</div><div class="timer-label">часов</div></div>
-        <div class="timer-block"><div class="timer-val" id="t-mins">0</div><div class="timer-label">минут</div></div>
-        <div class="timer-block"><div class="timer-val" id="t-secs">0</div><div class="timer-label">секунд</div></div>
-      </div>
-    </div>
     <div class="top3-wrap"></div>
     <div class="leaders-list"></div>
   `;
-
-  startTimer();
   _renderLeadersList(MOCK.leaders);
 
   try {
