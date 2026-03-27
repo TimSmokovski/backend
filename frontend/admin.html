@@ -243,7 +243,8 @@
         }
         return await res.json();
       } catch(e) {
-        return { __error: true, detail: 'Нет соединения' };
+        console.error('[api] fetch error:', e);
+        return { __error: true, detail: 'Нет соединения', _exception: e?.message };
       }
     }
 
@@ -327,10 +328,13 @@
       if (res?.ok) {
         _myBalance = res.user.balance;
         document.getElementById('my-balance-display').textContent = '⭐ ' + _myBalance.toLocaleString('ru');
-        // Обновляем карточку в списке если есть
         const card = document.getElementById(`user-${_myUserId}`);
         if (card) card.querySelector('.user-balance').textContent = '⭐ ' + _myBalance.toLocaleString('ru');
         toast(action === 'sub' ? '✅ Звёзды сняты' : '✅ Звёзды добавлены', '#27ae60');
+      } else if (res?.__error) {
+        // Перепроверяем — операция могла выполниться
+        await loadMyBalance();
+        toast('⚠️ Соединение сброшено, проверь баланс выше', '#e67e22');
       } else {
         toast('❌ ' + (res?.detail || 'Ошибка'), '#e74c3c');
       }
@@ -521,8 +525,22 @@
         }
         toast(`✅ Баланс: ${newBal.toLocaleString('ru')} ⭐`, '#27ae60');
         closeGiveModal();
-      } else {
-        toast('❌ ' + (res?.detail || 'Ошибка'), '#e74c3c');
+      } else if (res?.__error) {
+        // Запрос мог выполниться на сервере — перепроверяем баланс
+        const check = await api('GET', `/admin/users?q=${_giveUserId}`);
+        if (check && !check.__error && check.length) {
+          const u = check[0];
+          const card = document.getElementById(`user-${_giveUserId}`);
+          if (card) card.querySelector('.user-balance').textContent = '⭐ ' + (u.balance || 0).toLocaleString('ru');
+          if (_giveUserId === _myUserId) {
+            _myBalance = u.balance;
+            document.getElementById('my-balance-display').textContent = '⭐ ' + u.balance.toLocaleString('ru');
+          }
+          toast(`⚠️ Соединение сброшено, баланс обновлён: ${(u.balance || 0).toLocaleString('ru')} ⭐`, '#e67e22');
+          closeGiveModal();
+        } else {
+          toast('❌ ' + (res?.detail || 'Ошибка'), '#e74c3c');
+        }
       }
     }
 
