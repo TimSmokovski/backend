@@ -24,17 +24,17 @@ function renderProfilePage() {
       </div>
     </div>
 
-    <div style="margin:0 12px 16px;padding:20px;background:var(--card);border-radius:var(--radius);border:1px solid rgba(255,255,255,0.06);text-align:center">
-      <div style="font-size:15px;font-weight:700;margin-bottom:4px">Вывод звёзд</div>
-      <div style="font-size:13px;color:#888;margin-bottom:16px">Накопи звёзды и выведи их в Telegram</div>
+    <div style="margin:0 12px 16px;padding:24px 20px;background:linear-gradient(135deg,#1e1a0e,#2a2010);border-radius:18px;border:1px solid #f5c84233;text-align:center;box-shadow:0 4px 24px #f5c84218">
+      <div style="font-size:20px;font-weight:800;margin-bottom:6px;letter-spacing:0.2px">Вывод звёзд</div>
+      <div style="font-size:13px;color:#aaa;margin-bottom:20px">Накопи звёзды и выведи их в Telegram</div>
       <button onclick="showToast('⏳ Вывод будет доступен совсем скоро!')" style="
-        width:100%;padding:14px;border:none;border-radius:14px;cursor:pointer;
+        width:100%;padding:16px;border:none;border-radius:14px;cursor:pointer;
         background:linear-gradient(135deg,#f5c842,#f39c12);
-        color:#1a1200;font-size:15px;font-weight:800;
-        display:flex;align-items:center;justify-content:center;gap:8px;
-        box-shadow:0 4px 20px #f5c84244;letter-spacing:0.3px;
+        color:#1a1200;font-size:16px;font-weight:800;
+        display:flex;align-items:center;justify-content:center;gap:10px;
+        box-shadow:0 6px 28px #f5c84255;letter-spacing:0.3px;
       ">
-        <img src="assets/tg_star.png" alt="⭐" style="width:20px;height:20px;object-fit:contain">
+        <img src="assets/tg_star.png" alt="⭐" style="width:22px;height:22px;object-fit:contain">
         Вывести звёзды
       </button>
     </div>

@@ -1271,18 +1271,8 @@ function _minerClick(i) {
   const _luckRaw = localStorage.getItem('admin_luck_override');
   const _pM = parseInt(_luckRaw);
   const luck = _luckRaw !== null ? Math.max(0, Math.min(100, isNaN(_pM) ? 50 : _pM)) : 50;
-  const natural = _ms.mines / left;
-  const baseMineP = Math.min(0.92, natural * MINER_HOUSE);
-  let p;
-  if (luck >= 100) {
-    p = 0;
-  } else if (luck <= 0) {
-    p = 1;
-  } else if (luck >= 50) {
-    p = baseMineP * (100 - luck) / 50;
-  } else {
-    p = baseMineP + (1 - baseMineP) * (50 - luck) / 50;
-  }
+  // luck=30 → 30% шанс безопасно, 70% мина (единая логика с рулеткой/слотами)
+  const p = 1 - (luck / 100);
 
   if (Math.random() < p) {
     // МИНА
