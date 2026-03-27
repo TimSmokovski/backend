@@ -56,7 +56,7 @@ async def admin_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("⛔ Нет доступа.")
         return
     keyboard = InlineKeyboardMarkup([[
-        InlineKeyboardButton("⚙️ Админ панель", web_app=WebAppInfo(url=WEBAPP_URL + "/admin.html"))
+        InlineKeyboardButton("⚙️ Админ панель", web_app=WebAppInfo(url=WEBAPP_URL.rstrip("/") + "/admin.html"))
     ]])
     await update.message.reply_text("🔑 Добро пожаловать в админ панель:", reply_markup=keyboard)
 
