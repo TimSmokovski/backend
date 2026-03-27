@@ -165,6 +165,11 @@ async function init() {
     window.appState = { ...window.appState, ...userData };
   }
 
+  // Проверяем права админа (fire & forget, результат сохраняем в appState)
+  apiCall('GET', '/admin/check').then(res => {
+    window.appState.isAdmin = !!(res && !res.__error);
+  }).catch(() => {});
+
   try {
     document.getElementById('user-name').textContent = window.appState.name;
     _setTopbarAvatar();
