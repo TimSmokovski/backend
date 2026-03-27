@@ -173,10 +173,12 @@
 
     <!-- Рулетка -->
     <div class="section">
-      <div class="section-title">🎡 Веса рулетки (глобальные)</div>
+      <div class="section-title">🎡 Шансы рулетки (для всех)</div>
+      <div style="font-size:12px;color:#666;margin-bottom:12px">Укажи шанс выпадения каждого множителя. Сумма не обязана быть 100 — главное соотношение.</div>
       <div id="roulette-settings"></div>
+      <div id="roulette-total" style="font-size:13px;color:#aaa;margin-top:8px;text-align:right"></div>
       <div style="margin-top:12px">
-        <button onclick="saveRoulette()">Сохранить веса</button>
+        <button onclick="saveRoulette()">Сохранить шансы</button>
       </div>
     </div>
   </div>
@@ -450,26 +452,43 @@
       }, 400);
     }
 
-    // ===== ВЕСА РУЛЕТКИ =====
+    // ===== ШАНСЫ РУЛЕТКИ =====
     async function loadRouletteSettings() {
       const data = await api('GET', '/admin/settings');
       if (!data || data.__error) return;
+      const total = data.roulette.reduce((s, r) => s + r.weight, 0);
       const wrap = document.getElementById('roulette-settings');
-      wrap.innerHTML = data.roulette.map((s, i) => `
+      wrap.innerHTML = data.roulette.map((s, i) => {
+        const pct = total > 0 ? ((s.weight / total) * 100).toFixed(1) : '0.0';
+        const label = s.mult === 0 ? '💀 Проигрыш' : `✨ ${s.mult}x`;
+        return `
         <div class="roulette-row">
-          <div class="roulette-label">${s.name}</div>
-          <div class="roulette-mult">${s.mult}x</div>
-          <input type="number" id="rw-${i}" value="${s.weight}" min="0" style="width:70px">
-          <div style="font-size:12px;color:#888">вес</div>
-        </div>`).join('');
+          <div class="roulette-label" style="width:90px">${label}</div>
+          <input type="number" id="rw-${i}" value="${s.weight}" min="0" style="width:60px" oninput="updateRouletteTotal()">
+          <div style="font-size:12px;color:#888;width:42px" id="rp-${i}">${pct}%</div>
+        </div>`;
+      }).join('');
       window._rouletteCount = data.roulette.length;
+      updateRouletteTotal();
+    }
+
+    function updateRouletteTotal() {
+      const n = window._rouletteCount || 0;
+      const weights = Array.from({length: n}, (_, i) => parseFloat(document.getElementById(`rw-${i}`)?.value) || 0);
+      const total = weights.reduce((a, b) => a + b, 0);
+      weights.forEach((w, i) => {
+        const el = document.getElementById(`rp-${i}`);
+        if (el) el.textContent = total > 0 ? ((w / total) * 100).toFixed(1) + '%' : '0%';
+      });
+      const totalEl = document.getElementById('roulette-total');
+      if (totalEl) totalEl.textContent = 'Сумма: ' + total;
     }
 
     async function saveRoulette() {
       const n = window._rouletteCount || 0;
       const weights = Array.from({length: n}, (_, i) => parseInt(document.getElementById(`rw-${i}`)?.value) || 0);
       const res = await api('POST', '/admin/settings/roulette', { weights });
-      if (res?.ok) toast('✅ Веса сохранены', '#27ae60');
+      if (res?.ok) toast('✅ Шансы сохранены', '#27ae60');
       else toast('❌ ' + (res?.detail || 'Ошибка'), '#e74c3c');
     }
 
