@@ -60,6 +60,6 @@ async def get_current_user(
         cursor = await db.execute("SELECT * FROM users WHERE id = ?", (tg_id,))
         user = await cursor.fetchone()
         user_dict = dict(user)
-    if user_dict.get("banned"):
-        raise HTTPException(status_code=403, detail="Ваш аккаунт заблокирован")
-    return user_dict
+        if user_dict.get("banned"):
+            raise HTTPException(status_code=403, detail="Ваш аккаунт заблокирован")
+        return user_dict
