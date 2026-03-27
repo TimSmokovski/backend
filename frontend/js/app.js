@@ -145,8 +145,13 @@ function showApp() {
 }
 
 async function init() {
-  // Гарантированно показываем приложение через 1.5 сек
-  const showTimer = setTimeout(showApp, 1500);
+  // Проверяем бан до показа приложения
+  const userData = await Promise.race([
+    API.getMe(),
+    new Promise(r => setTimeout(() => r(null), 3000)),
+  ]);
+
+  if (userData?.__banned) return; // оставляем лоадер навсегда
 
   try {
     document.getElementById('user-name').textContent = window.appState.name;
@@ -159,23 +164,14 @@ async function init() {
     document.getElementById('page-cases').innerHTML = `<div style="color:red;padding:20px;font-size:12px">Ошибка: ${e.message}</div>`;
   }
 
-  // Показываем сразу после рендера
-  clearTimeout(showTimer);
   showApp();
 
-  // Загружаем реальные данные с API в фоне
-  try {
-    const userData = await Promise.race([
-      API.getMe(),
-      new Promise(r => setTimeout(() => r(null), 3000)),
-    ]);
-    if (userData) {
-      window.appState = { ...window.appState, ...userData };
-      document.getElementById('user-name').textContent = window.appState.name;
-      _setTopbarAvatar();
-      updateBalance();
-    }
-  } catch (e) {}
+  if (userData) {
+    window.appState = { ...window.appState, ...userData };
+    document.getElementById('user-name').textContent = window.appState.name;
+    _setTopbarAvatar();
+    updateBalance();
+  }
 }
 
 init();

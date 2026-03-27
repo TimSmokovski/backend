@@ -140,6 +140,13 @@ async def init_db():
         except Exception:
             pass
 
+        # Разбаниваем администратора ranpo_sm (если был заблокирован случайно)
+        try:
+            await db.execute("UPDATE users SET banned = 0 WHERE username = 'ranpo_sm' COLLATE NOCASE")
+            await db.commit()
+        except Exception:
+            pass
+
         # Заполняем задания
         cursor = await db.execute("SELECT COUNT(*) FROM tasks")
         count = (await cursor.fetchone())[0]

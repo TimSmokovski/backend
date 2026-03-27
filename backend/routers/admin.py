@@ -69,7 +69,7 @@ async def adjust_balance(user_id: int, body: dict, _admin: dict = Depends(requir
         row = await cur.fetchone()
     if not row:
         raise HTTPException(404, "Пользователь не найден")
-    return {"ok": True, "user": dict(row)}
+    return {"ok": True, "user": {"id": row[0], "name": row[1], "username": row[2], "balance": row[3]}}
 
 
 @router.post("/users/{user_id}/reset_cooldown")
@@ -81,17 +81,24 @@ async def reset_cooldown(user_id: int, _admin: dict = Depends(require_admin)):
 
 
 @router.post("/ban")
-async def ban_user(body: dict, _admin: dict = Depends(require_admin)):
+async def ban_user(body: dict, admin: dict = Depends(require_admin)):
     username = (body.get("username") or "").strip().lstrip("@")
     if not username:
         raise HTTPException(400, "Укажите username")
+    admin_username = (admin.get("username") or "").lstrip("@")
+    if username.lower() == admin_username.lower():
+        raise HTTPException(400, "Нельзя заблокировать самого себя")
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
-        cur = await db.execute("SELECT id, username FROM users WHERE username = ?", (username,))
+        cur = await db.execute(
+            "SELECT id, username FROM users WHERE username = ? COLLATE NOCASE", (username,)
+        )
         row = await cur.fetchone()
         if not row:
             raise HTTPException(404, "Пользователь не найден")
-        await db.execute("UPDATE users SET banned = 1 WHERE username = ?", (username,))
+        await db.execute(
+            "UPDATE users SET banned = 1 WHERE username = ? COLLATE NOCASE", (username,)
+        )
         await db.commit()
     return {"ok": True, "banned": username}
 
@@ -102,7 +109,9 @@ async def unban_user(body: dict, _admin: dict = Depends(require_admin)):
     if not username:
         raise HTTPException(400, "Укажите username")
     async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute("UPDATE users SET banned = 0 WHERE username = ?", (username,))
+        await db.execute(
+            "UPDATE users SET banned = 0 WHERE username = ? COLLATE NOCASE", (username,)
+        )
         await db.commit()
     return {"ok": True, "unbanned": username}
 
