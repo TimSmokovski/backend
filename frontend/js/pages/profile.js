@@ -41,7 +41,29 @@ function renderProfilePage() {
         </div>
       </div>
     </div>
+    <div id="admin-btn-slot"></div>
   `;
+
+  // Проверяем на сервере — является ли текущий пользователь админом
+  apiCall('GET', '/admin/check').then(res => {
+    if (!res || res.__error) return;
+    const slot = document.getElementById('admin-btn-slot');
+    if (!slot) return;
+    slot.innerHTML = `
+      <div style="margin:0 12px 24px">
+        <button onclick="openAdminPanel()" style="
+          width:100%;padding:14px;border:none;border-radius:14px;
+          background:linear-gradient(135deg,#6c5ce7,#a855f7);
+          color:#fff;font-size:15px;font-weight:700;cursor:pointer;
+          display:flex;align-items:center;justify-content:center;gap:8px;
+        ">⚙️ Админ панель</button>
+      </div>`;
+  });
+}
+
+function openAdminPanel() {
+  const base = window.location.href.replace(/\/[^/]*$/, '');
+  window.location.href = base + '/admin.html';
 }
 
 function doInvite() {
