@@ -136,7 +136,6 @@ html, body { height: 100%; overflow: hidden; font-family: 'Inter', sans-serif; b
 .roulette-icon{ background: linear-gradient(135deg, #2980b9, #1565c0); }
 .crash-icon   { background: linear-gradient(135deg, #e74c3c, #c0392b); }
 .slots-icon   { background: linear-gradient(135deg, #f39c12, #e67e22); }
-.eggs-icon    { background: linear-gradient(135deg, #27ae60, #1e8449); }
 .upgrade-icon { background: linear-gradient(135deg, #7b1fa2, #4a148c); }
 
 .mode-info { flex: 1; }
@@ -643,24 +642,6 @@ html, body { height: 100%; overflow: hidden; font-family: 'Inter', sans-serif; b
   font-size: 16px; font-weight: 700; cursor: pointer;
 }
 
-/* ===== EGGS MODAL ===== */
-.eggs-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
-.egg-item {
-  background: var(--bg3); border-radius: var(--radius);
-  padding: 16px 8px; display: flex; flex-direction: column; align-items: center; gap: 8px;
-  cursor: pointer; transition: transform 0.15s, background 0.15s;
-  border: 2px solid transparent;
-}
-.egg-item:active { transform: scale(0.95); }
-.egg-item.selected { border-color: var(--teal); background: rgba(26,188,156,0.1); }
-.egg-emoji { font-size: 42px; }
-.egg-name { font-size: 12px; font-weight: 600; text-align: center; }
-.egg-price { font-size: 11px; color: var(--gold); display: flex; align-items: center; gap: 2px; }
-.btn-open-egg {
-  width: 100%; padding: 14px; background: linear-gradient(135deg, #00897b, #004d40);
-  color: white; border: none; border-radius: var(--radius-sm);
-  font-size: 16px; font-weight: 700; cursor: pointer;
-}
 
 /* ===== WIN ANIMATION ===== */
 .win-overlay {
