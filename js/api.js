@@ -42,7 +42,15 @@ const API = {
   pvpLobby: ()                  => apiCall('GET', '/pvp/lobby'),
   pvpBet: (amount)              => apiCall('POST', '/pvp/bet', { amount }),
   pvpDraw: ()                   => apiCall('POST', '/pvp/draw'),
-  spinRoulette: (bet, section)  => apiCall('POST', '/roulette/spin', { bet, section }),
+  spinRoulette: (bet, section) => {
+    const data = { bet, section };
+    const stored = localStorage.getItem('admin_luck_override');
+    if (stored !== null) {
+      const luck = parseInt(stored);
+      if (!isNaN(luck) && luck >= 0 && luck <= 100) data.luck = luck;
+    }
+    return apiCall('POST', '/roulette/spin', data);
+  },
   crashState: ()                => apiCall('GET',  '/crash/state'),
   crashBet: (amount)            => apiCall('POST', '/crash/bet', { amount }),
   crashCashout: ()              => apiCall('POST', '/crash/cashout'),

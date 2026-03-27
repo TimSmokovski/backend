@@ -29,16 +29,19 @@
     button:active{opacity:.8}
     button.danger{background:#e74c3c}
     button.secondary{background:#2d2d4e}
+    button.success{background:#27ae60}
     .user-list{display:flex;flex-direction:column;gap:6px}
     .user-card{
       background:#0e0e1a;border-radius:10px;padding:12px;
       display:flex;align-items:center;gap:10px;
     }
+    .user-card.banned-card{border:1px solid #e74c3c22;background:#1a0e0e}
     .user-avatar{
       width:36px;height:36px;border-radius:50%;background:#6c5ce7;
       display:flex;align-items:center;justify-content:center;
       font-size:16px;font-weight:700;flex-shrink:0;
     }
+    .user-avatar.banned-av{background:#e74c3c}
     .user-info{flex:1;min-width:0}
     .user-name{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .user-meta{font-size:12px;color:#888}
@@ -58,24 +61,106 @@
     .toast.show{opacity:1}
     #access-denied{text-align:center;padding:60px 20px}
     #access-denied .icon{font-size:64px;margin-bottom:16px}
-    #access-denied p{color:#888;font-size:15px}
-    #loader-screen{text-align:center;padding:80px 20px;color:#888}
+    #access-denied p{color:#888;font-size:15px;margin-bottom:20px}
+    #login-screen{text-align:center;padding:80px 20px}
+    #login-screen .icon{font-size:72px;margin-bottom:16px}
+    #login-screen h2{font-size:22px;font-weight:700;margin-bottom:8px}
+    #login-screen p{color:#888;font-size:14px;margin-bottom:28px}
+    #login-screen button{font-size:16px;padding:14px 32px}
     .search-row{display:flex;gap:8px;margin-bottom:12px}
     .search-row input{flex:1}
+    .balance-display{
+      font-size:28px;font-weight:700;color:#ffd700;
+      text-align:center;margin-bottom:14px;
+    }
+    .balance-hint{font-size:12px;color:#666;text-align:center;margin-bottom:10px}
+    input[type=range]{
+      width:100%;accent-color:#6c5ce7;height:6px;
+      -webkit-appearance:none;background:#2d2d4e;border-radius:3px;outline:none;
+    }
+    input[type=range]::-webkit-slider-thumb{
+      -webkit-appearance:none;width:20px;height:20px;
+      border-radius:50%;background:#6c5ce7;cursor:pointer;
+    }
+    .luck-label{
+      display:flex;justify-content:space-between;
+      font-size:12px;color:#666;margin-top:4px;margin-bottom:12px;
+    }
+    .luck-current{
+      font-size:32px;font-weight:700;text-align:center;
+      margin-bottom:8px;
+    }
+    .ban-row{display:flex;gap:8px;margin-bottom:10px}
+    .ban-row input{flex:1}
   </style>
 </head>
 <body>
-  <div id="loader-screen">Загрузка...</div>
+
+  <!-- Экран входа -->
+  <div id="login-screen">
+    <div class="icon">⚙️</div>
+    <h2>Админ панель</h2>
+    <p>CaseArena — управление платформой</p>
+    <button onclick="doLogin()" id="login-btn">Войти в панель</button>
+  </div>
+
+  <!-- Нет доступа -->
   <div id="access-denied" style="display:none">
     <div class="icon">🔒</div>
     <h2 style="margin-bottom:8px">Нет доступа</h2>
-    <p>Эта страница только для администраторов</p>
+    <p id="denied-msg">Эта страница только для администраторов</p>
+    <button class="secondary" onclick="resetToLogin()">← Назад</button>
   </div>
+
+  <!-- Панель -->
   <div id="admin-panel" style="display:none">
     <h1>⚙️ Админ панель</h1>
     <div class="subtitle" id="admin-subtitle">CaseArena</div>
 
-    <!-- Поиск пользователей -->
+    <!-- Мой баланс -->
+    <div class="section">
+      <div class="section-title">💰 Мой баланс</div>
+      <div class="balance-display" id="my-balance-display">⭐ —</div>
+      <div class="balance-hint">Добавить или забрать звёзды у себя</div>
+      <div class="row" style="margin-bottom:10px">
+        <input type="number" id="self-amount" value="1000" min="1" style="flex:1">
+        <button onclick="selfBalance('add')" class="success">➕ Дать</button>
+        <button onclick="selfBalance('sub')" class="danger">➖ Забрать</button>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="secondary" style="flex:1;padding:8px;font-size:12px" onclick="setSelfAmt(100)">100</button>
+        <button class="secondary" style="flex:1;padding:8px;font-size:12px" onclick="setSelfAmt(500)">500</button>
+        <button class="secondary" style="flex:1;padding:8px;font-size:12px" onclick="setSelfAmt(1000)">1 000</button>
+        <button class="secondary" style="flex:1;padding:8px;font-size:12px" onclick="setSelfAmt(5000)">5 000</button>
+        <button class="secondary" style="flex:1;padding:8px;font-size:12px" onclick="setSelfAmt(10000)">10 000</button>
+      </div>
+    </div>
+
+    <!-- Удача рулетки -->
+    <div class="section">
+      <div class="section-title">🎲 Моя удача в рулетке</div>
+      <div class="luck-current" id="luck-display">50%</div>
+      <input type="range" id="luck-slider" min="0" max="100" value="50" oninput="onLuckSlider(this.value)">
+      <div class="luck-label"><span>0% — всегда проигрыш</span><span>100% — всегда выигрыш</span></div>
+      <button onclick="saveLuck()" style="width:100%">💾 Сохранить локально</button>
+      <div style="font-size:11px;color:#666;margin-top:8px;text-align:center">
+        Применяется только к твоим спинам рулетки. Хранится в браузере.
+      </div>
+    </div>
+
+    <!-- Бан / Разбан -->
+    <div class="section">
+      <div class="section-title">🔨 Бан / Разбан</div>
+      <div class="ban-row">
+        <input type="text" id="ban-input" placeholder="username (без @)">
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="danger" style="flex:1" onclick="banUser()">🔨 Забанить</button>
+        <button class="success" style="flex:1" onclick="unbanUser()">✅ Разбанить</button>
+      </div>
+    </div>
+
+    <!-- Пользователи -->
     <div class="section">
       <div class="section-title">👥 Пользователи</div>
       <div class="search-row">
@@ -88,7 +173,7 @@
 
     <!-- Рулетка -->
     <div class="section">
-      <div class="section-title">🎡 Веса рулетки</div>
+      <div class="section-title">🎡 Веса рулетки (глобальные)</div>
       <div id="roulette-settings"></div>
       <div style="margin-top:12px">
         <button onclick="saveRoulette()">Сохранить веса</button>
@@ -96,7 +181,7 @@
     </div>
   </div>
 
-  <!-- Модалка выдачи звёзд -->
+  <!-- Модалка звёзд -->
   <div id="give-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;align-items:flex-end;justify-content:center">
     <div style="background:#1a1a2e;border-radius:20px 20px 0 0;padding:20px;width:100%;max-width:480px">
       <div style="font-size:16px;font-weight:700;margin-bottom:4px">⭐ Выдать звёзды</div>
@@ -134,6 +219,8 @@
     let _giveAction = 'add';
     let _searchTimer = null;
     const _usersMap = {};
+    let _myUserId = null;
+    let _myBalance = null;
 
     async function api(method, path, data = null) {
       const opts = {
@@ -156,14 +243,26 @@
       }
     }
 
-    function toast(msg) {
+    function toast(msg, color) {
       const el = document.getElementById('toast');
       el.textContent = msg;
+      el.style.background = color || '#6c5ce7';
       el.classList.add('show');
       setTimeout(() => el.classList.remove('show'), 2500);
     }
 
-    async function init() {
+    function resetToLogin() {
+      document.getElementById('access-denied').style.display = 'none';
+      document.getElementById('login-screen').style.display = 'block';
+      document.getElementById('login-btn').textContent = 'Войти в панель';
+      document.getElementById('login-btn').disabled = false;
+    }
+
+    async function doLogin() {
+      const btn = document.getElementById('login-btn');
+      btn.textContent = 'Проверка...';
+      btn.disabled = true;
+
       if (tg) { tg.ready(); tg.expand(); tg.setHeaderColor('#0e0e1a'); tg.setBackgroundColor('#0e0e1a'); }
 
       try {
@@ -171,41 +270,163 @@
           api('GET', '/admin/check'),
           new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 8000))
         ]);
-        document.getElementById('loader-screen').style.display = 'none';
 
         if (!check || check.__error) {
+          document.getElementById('login-screen').style.display = 'none';
+          document.getElementById('denied-msg').textContent = 'Эта страница только для администраторов';
           document.getElementById('access-denied').style.display = 'block';
           return;
         }
 
+        _myUserId = check.user_id;
         document.getElementById('admin-subtitle').textContent = `Вы вошли как @${check.user}`;
+        document.getElementById('login-screen').style.display = 'none';
         document.getElementById('admin-panel').style.display = 'block';
+
+        loadMyBalance();
+        loadLuckSlider();
         loadUsers();
         loadRouletteSettings();
+
       } catch(e) {
-        document.getElementById('loader-screen').style.display = 'none';
+        document.getElementById('login-screen').style.display = 'none';
+        const msg = e.message === 'timeout'
+          ? 'Сервер не отвечает — попробуй позже'
+          : 'Ошибка соединения';
+        document.getElementById('denied-msg').textContent = msg;
         document.getElementById('access-denied').style.display = 'block';
-        document.getElementById('access-denied').querySelector('p').textContent =
-          e.message === 'timeout' ? 'Сервер не отвечает — попробуй позже' : 'Ошибка соединения';
       }
     }
 
+    // ===== МОЙ БАЛАНС =====
+    async function loadMyBalance() {
+      if (!_myUserId) return;
+      const r = await api('GET', '/users/me');
+      if (r && !r.__error) {
+        _myBalance = r.balance;
+        document.getElementById('my-balance-display').textContent = '⭐ ' + r.balance.toLocaleString('ru');
+      }
+    }
+
+    function setSelfAmt(v) {
+      document.getElementById('self-amount').value = v;
+    }
+
+    async function selfBalance(action) {
+      if (!_myUserId) return;
+      const amount = parseInt(document.getElementById('self-amount').value) || 0;
+      if (amount <= 0) { toast('Введите сумму'); return; }
+      const sendAmount = action === 'sub' ? -amount : amount;
+      const res = await api('POST', `/admin/users/${_myUserId}/balance`, { amount: sendAmount, action: 'add' });
+      if (res?.ok) {
+        _myBalance = res.user.balance;
+        document.getElementById('my-balance-display').textContent = '⭐ ' + _myBalance.toLocaleString('ru');
+        // Обновляем карточку в списке если есть
+        const card = document.getElementById(`user-${_myUserId}`);
+        if (card) card.querySelector('.user-balance').textContent = '⭐ ' + _myBalance.toLocaleString('ru');
+        toast(action === 'sub' ? '✅ Звёзды сняты' : '✅ Звёзды добавлены', '#27ae60');
+      } else {
+        toast('❌ ' + (res?.detail || 'Ошибка'), '#e74c3c');
+      }
+    }
+
+    // ===== УДАЧА РУЛЕТКИ =====
+    function loadLuckSlider() {
+      const stored = localStorage.getItem('admin_luck_override');
+      const val = stored !== null ? parseInt(stored) : 50;
+      document.getElementById('luck-slider').value = val;
+      updateLuckDisplay(val);
+    }
+
+    function onLuckSlider(v) {
+      updateLuckDisplay(parseInt(v));
+    }
+
+    function updateLuckDisplay(v) {
+      const el = document.getElementById('luck-display');
+      el.textContent = v + '%';
+      if (v < 30) el.style.color = '#e74c3c';
+      else if (v < 60) el.style.color = '#f39c12';
+      else el.style.color = '#27ae60';
+    }
+
+    function saveLuck() {
+      const v = document.getElementById('luck-slider').value;
+      localStorage.setItem('admin_luck_override', v);
+      toast('✅ Удача сохранена: ' + v + '%', '#27ae60');
+    }
+
+    // ===== БАН / РАЗБАН =====
+    async function banUser() {
+      const username = document.getElementById('ban-input').value.trim().replace(/^@/, '');
+      if (!username) { toast('Введи username'); return; }
+      const res = await api('POST', '/admin/ban', { username });
+      if (res?.ok) {
+        toast('🔨 @' + username + ' заблокирован', '#e74c3c');
+        document.getElementById('ban-input').value = '';
+        loadUsers(document.getElementById('search-input').value.trim());
+      } else {
+        toast('❌ ' + (res?.detail || 'Не найден'), '#e74c3c');
+      }
+    }
+
+    async function unbanUser() {
+      const username = document.getElementById('ban-input').value.trim().replace(/^@/, '');
+      if (!username) { toast('Введи username'); return; }
+      const res = await api('POST', '/admin/unban', { username });
+      if (res?.ok) {
+        toast('✅ @' + username + ' разблокирован', '#27ae60');
+        document.getElementById('ban-input').value = '';
+        loadUsers(document.getElementById('search-input').value.trim());
+      } else {
+        toast('❌ ' + (res?.detail || 'Ошибка'), '#e74c3c');
+      }
+    }
+
+    // ===== ПОЛЬЗОВАТЕЛИ =====
     function renderUser(u) {
       _usersMap[u.id] = u;
       const initial = (u.name || u.username || '?')[0].toUpperCase();
+      const isBanned = u.banned;
       return `
-        <div class="user-card" id="user-${u.id}">
-          <div class="user-avatar">${initial}</div>
+        <div class="user-card${isBanned ? ' banned-card' : ''}" id="user-${u.id}">
+          <div class="user-avatar${isBanned ? ' banned-av' : ''}">${initial}</div>
           <div class="user-info">
-            <div class="user-name">${u.name || 'Без имени'}</div>
+            <div class="user-name">${u.name || 'Без имени'}${isBanned ? ' 🔒' : ''}</div>
             <div class="user-meta">${u.username ? '@' + u.username : ''} · ID: ${u.id}</div>
             <div class="user-actions">
               <button onclick="openGiveModal(${u.id})">⭐ Звёзды</button>
               <button class="secondary" onclick="resetCooldown(${u.id})">🔄 Сброс кейса</button>
+              ${isBanned
+                ? `<button class="success" onclick="quickUnban('${u.username || ''}', ${u.id})">✅ Разбан</button>`
+                : `<button class="danger" onclick="quickBan('${u.username || ''}', ${u.id})">🔨 Бан</button>`
+              }
             </div>
           </div>
           <div class="user-balance">⭐ ${(u.balance || 0).toLocaleString('ru')}</div>
         </div>`;
+    }
+
+    async function quickBan(username, userId) {
+      if (!username) { toast('У пользователя нет username'); return; }
+      const res = await api('POST', '/admin/ban', { username });
+      if (res?.ok) {
+        toast('🔨 @' + username + ' заблокирован', '#e74c3c');
+        loadUsers(document.getElementById('search-input').value.trim());
+      } else {
+        toast('❌ ' + (res?.detail || 'Ошибка'), '#e74c3c');
+      }
+    }
+
+    async function quickUnban(username, userId) {
+      if (!username) { toast('У пользователя нет username'); return; }
+      const res = await api('POST', '/admin/unban', { username });
+      if (res?.ok) {
+        toast('✅ @' + username + ' разблокирован', '#27ae60');
+        loadUsers(document.getElementById('search-input').value.trim());
+      } else {
+        toast('❌ ' + (res?.detail || 'Ошибка'), '#e74c3c');
+      }
     }
 
     async function loadUsers(q = '') {
@@ -229,6 +450,7 @@
       }, 400);
     }
 
+    // ===== ВЕСА РУЛЕТКИ =====
     async function loadRouletteSettings() {
       const data = await api('GET', '/admin/settings');
       if (!data || data.__error) return;
@@ -247,10 +469,11 @@
       const n = window._rouletteCount || 0;
       const weights = Array.from({length: n}, (_, i) => parseInt(document.getElementById(`rw-${i}`)?.value) || 0);
       const res = await api('POST', '/admin/settings/roulette', { weights });
-      if (res?.ok) toast('✅ Веса сохранены');
-      else toast('❌ ' + (res?.detail || 'Ошибка'));
+      if (res?.ok) toast('✅ Веса сохранены', '#27ae60');
+      else toast('❌ ' + (res?.detail || 'Ошибка'), '#e74c3c');
     }
 
+    // ===== МОДАЛКА ЗВЁЗД =====
     function openGiveModal(userId) {
       const u = _usersMap[userId];
       const userName = u ? (u.name || u.username || 'Игрок') : 'Игрок';
@@ -281,24 +504,26 @@
         const newBal = res.user.balance;
         const card = document.getElementById(`user-${_giveUserId}`);
         if (card) card.querySelector('.user-balance').textContent = '⭐ ' + newBal.toLocaleString('ru');
-        toast(`✅ Баланс: ${newBal.toLocaleString('ru')} ⭐`);
+        if (_giveUserId === _myUserId) {
+          _myBalance = newBal;
+          document.getElementById('my-balance-display').textContent = '⭐ ' + newBal.toLocaleString('ru');
+        }
+        toast(`✅ Баланс: ${newBal.toLocaleString('ru')} ⭐`, '#27ae60');
         closeGiveModal();
       } else {
-        toast('❌ ' + (res?.detail || 'Ошибка'));
+        toast('❌ ' + (res?.detail || 'Ошибка'), '#e74c3c');
       }
     }
 
     async function resetCooldown(userId) {
       const res = await api('POST', `/admin/users/${userId}/reset_cooldown`);
-      if (res?.ok) toast('✅ Кулдаун сброшен');
-      else toast('❌ ' + (res?.detail || 'Ошибка'));
+      if (res?.ok) toast('✅ Кулдаун сброшен', '#27ae60');
+      else toast('❌ ' + (res?.detail || 'Ошибка'), '#e74c3c');
     }
 
     document.getElementById('give-modal').addEventListener('click', (e) => {
       if (e.target === document.getElementById('give-modal')) closeGiveModal();
     });
-
-    init();
   </script>
 </body>
 </html>
