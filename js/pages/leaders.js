@@ -64,11 +64,16 @@ function renderTop3Item(leader, rank) {
     ? (leader.stars / 1000).toFixed(0) + 'K'
     : leader.stars;
 
+  const usernameHtml = leader.username
+    ? `<div style="font-size:10px;color:#888;margin-top:2px">@${leader.username}</div>`
+    : '';
+
   return `
     <div class="top3-item ${rank === 1 ? 'first' : ''}">
       <div class="top3-rank">${medals[rank]}</div>
       <div class="top3-avatar">${_avatarHtml(leader, 48)}</div>
       <div class="top3-name">${leader.name}</div>
+      ${usernameHtml}
       ${leader.prize ? `<div style="font-size:20px;margin-top:6px">${leader.prize}</div>` : ''}
     </div>
   `;
@@ -81,12 +86,17 @@ function renderLeaderItem(leader) {
     ? (leader.stars / 1000).toFixed(0) + 'K'
     : leader.stars;
 
+  const usernameHtml = leader.username
+    ? `<div style="font-size:11px;color:#888;margin-top:1px">@${leader.username}</div>`
+    : '';
+
   return `
     <div class="leader-item">
       <div class="leader-rank">${leader.rank}</div>
       <div class="leader-avatar">${_avatarHtml(leader, 38)}</div>
       <div class="leader-info">
         <div class="leader-name">${leader.name}</div>
+        ${usernameHtml}
       </div>
       <div class="leader-prize">${leader.prize || ''}</div>
     </div>
