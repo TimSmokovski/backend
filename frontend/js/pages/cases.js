@@ -453,7 +453,7 @@ let rouletteBet = 100;
 let rouletteResetTimeout = null;
 
 function _rouletteStar(size, color) {
-  return `<img src="assets/tg_star.png" width="${size}" height="${size}" style="flex-shrink:0;display:inline-block;vertical-align:middle;filter:drop-shadow(0 0 5px ${color}bb)">`;
+  return `<img src="assets/tg_star.png" height="${size}" style="width:auto;flex-shrink:0;display:inline-block;vertical-align:middle;filter:drop-shadow(0 0 5px ${color}bb)">`;
 }
 
 function _goldStar(size = 18) { return _rouletteStar(size, '#ffd700'); }
