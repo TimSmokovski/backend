@@ -93,7 +93,8 @@ async def leaderboard():
         users = await cur.fetchall()
     prizes = ["💎", "🏆", "🥇", "🚀", "💰", "💍", "🪙", "💵", "🎯", "🎁"]
     return [
-        {"rank": i+1, "name": u["name"] or "Игрок", "stars": u["balance"],
+        {"rank": i+1, "name": u["name"] or "Игрок", "username": u["username"] or "",
+         "stars": u["balance"],
          "photo_url": u["photo_url"], "avatar": (u["name"] or "И")[0].upper(),
          "prize": prizes[i]}
         for i, u in enumerate(users)

@@ -5,6 +5,13 @@ const API_BASE = window.location.hostname === 'localhost'
 
 const tg = window.Telegram?.WebApp;
 
+function _adminLuck() {
+  const stored = localStorage.getItem('admin_luck_override');
+  if (stored === null) return {};
+  const luck = parseInt(stored);
+  return (!isNaN(luck) && luck >= 0 && luck <= 100) ? { luck } : {};
+}
+
 async function apiCall(method, path, data = null) {
   const opts = {
     method,
@@ -43,11 +50,11 @@ const API = {
   getTasks: ()                  => apiCall('GET', '/tasks'),
   completeTask: (id)            => apiCall('POST', `/tasks/${id}/complete`),
   getReferral: ()               => apiCall('GET', '/referral'),
-  openCase: (type)              => apiCall('POST', '/cases/open', { type }),
+  openCase: (type)              => apiCall('POST', '/cases/open', { type, ..._adminLuck() }),
   recentWins: ()                => apiCall('GET', '/cases/recent'),
   recordWin: (emoji, name, stars) => apiCall('POST', '/cases/record_win', { emoji, name, stars }),
   pvpLobby: ()                  => apiCall('GET', '/pvp/lobby'),
-  pvpBet: (amount)              => apiCall('POST', '/pvp/bet', { amount }),
+  pvpBet: (amount)              => apiCall('POST', '/pvp/bet', { amount, ..._adminLuck() }),
   pvpDraw: ()                   => apiCall('POST', '/pvp/draw'),
   spinRoulette: (bet, section) => {
     const data = { bet, section };
@@ -59,9 +66,9 @@ const API = {
     return apiCall('POST', '/roulette/spin', data);
   },
   crashState: ()                => apiCall('GET',  '/crash/state'),
-  crashBet: (amount)            => apiCall('POST', '/crash/bet', { amount }),
+  crashBet: (amount)            => apiCall('POST', '/crash/bet', { amount, ..._adminLuck() }),
   crashCashout: ()              => apiCall('POST', '/crash/cashout'),
-  spinSlots: (bet)              => apiCall('POST', '/slots/spin', { bet }),
+  spinSlots: (bet)              => apiCall('POST', '/slots/spin', { bet, ..._adminLuck() }),
   upgrade: (itemId, targetId)   => apiCall('POST', '/upgrade', { item_id: itemId, target_id: targetId }),
 };
 

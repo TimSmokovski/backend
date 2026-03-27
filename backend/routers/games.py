@@ -83,22 +83,38 @@ async def slots_spin(body: dict, user: dict = Depends(get_current_user)):
     bet = int(body.get("bet", 50))
     if user["balance"] < bet:
         raise HTTPException(status_code=400, detail="Недостаточно звёзд")
-    chance = GLOBAL_WIN_CHANCE
-    r = random.random() * 100
-    if r < chance:
-        if random.random() < chance / 100:
-            symbol = random.choice(SLOT_EMOJIS)
-            reels = [symbol, symbol, symbol]
-            won, result = bet * SLOT_MULT.get(symbol, 4), "jackpot"
-        else:
-            symbol = random.choice(SLOT_EMOJIS)
-            other = random.choice([e for e in SLOT_EMOJIS if e != symbol])
-            reels = [symbol, symbol, symbol]
-            reels[random.randint(0, 2)] = other
-            won, result = bet * 2, "pair"
+    luck = body.get("luck", -1)
+    if isinstance(luck, (int, float)) and 0 <= luck <= 100 and _is_admin(user):
+        chance = int(luck)
     else:
+        chance = GLOBAL_WIN_CHANCE
+
+    if chance >= 100:
+        best = max(SLOT_EMOJIS, key=lambda e: SLOT_MULT.get(e, 1))
+        reels = [best, best, best]
+        won, result = bet * SLOT_MULT[best], "jackpot"
+    elif chance <= 0:
         reels = random.sample(SLOT_EMOJIS, 3)
+        while len(set(reels)) < 3:
+            reels = random.sample(SLOT_EMOJIS, 3)
         won, result = 0, "lose"
+    else:
+        r = random.random() * 100
+        if r < chance:
+            if random.random() < chance / 100:
+                symbol = random.choice(SLOT_EMOJIS)
+                reels = [symbol, symbol, symbol]
+                won, result = bet * SLOT_MULT.get(symbol, 4), "jackpot"
+            else:
+                symbol = random.choice(SLOT_EMOJIS)
+                other = random.choice([e for e in SLOT_EMOJIS if e != symbol])
+                reels = [symbol, symbol, symbol]
+                reels[random.randint(0, 2)] = other
+                won, result = bet * 2, "pair"
+        else:
+            reels = random.sample(SLOT_EMOJIS, 3)
+            won, result = 0, "lose"
+
     new_balance = await deduct_and_add(user["id"], bet, won)
     return {"reels": reels, "result": result, "won": won, "new_balance": new_balance}
 
@@ -117,14 +133,13 @@ _crash = {
 }
 
 
-def _gen_crash():
+def _gen_crash(chance=None):
     """Генерирует точку краша с учётом GLOBAL_WIN_CHANCE (0–100)."""
-    c = GLOBAL_WIN_CHANCE  # 0 = всегда краш, 100 = всегда высоко
-    if c == 100:
+    c = GLOBAL_WIN_CHANCE if chance is None else chance
+    if c >= 100:
         return round(random.uniform(20.0, 100.0), 2)
-    if c == 0:
+    if c <= 0:
         return round(random.uniform(1.01, 1.05), 2)
-    # Чем выше chance, тем ниже вероятность раннего краша
     early_prob = 0.18 * (1 - c / 100)
     r = random.random()
     if r < early_prob * 0.44:
@@ -230,6 +245,9 @@ async def crash_bet(body: dict, user: dict = Depends(get_current_user)):
     bet = max(10, int(body.get("amount", 100)))
     if user["balance"] < bet:
         raise HTTPException(400, "Недостаточно звёзд")
+    luck = body.get("luck", -1)
+    if isinstance(luck, (int, float)) and 0 <= luck <= 100 and _is_admin(user):
+        _crash["crash_point"] = _gen_crash(int(luck))
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute("UPDATE users SET balance = balance - ? WHERE id = ?", (bet, user["id"]))
         await db.execute(

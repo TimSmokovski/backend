@@ -4,8 +4,11 @@ from fastapi import APIRouter, Depends, HTTPException
 import aiosqlite
 from database import DB_PATH
 from auth import get_current_user
+from routers.games import _is_admin
 
 router = APIRouter(prefix="/pvp", tags=["pvp"])
+
+_pvp_luck = {}  # round_id -> {"user_id": int, "luck": int}
 
 ROUND_DURATION = 60  # 1 минута
 MAX_PLAYERS = 10
@@ -31,7 +34,23 @@ async def try_resolve_round(db, round_id: int) -> dict | None:
     total_pot = sum(b[1] for b in bets)
     users = [b[0] for b in bets]
     weights = [b[1] for b in bets]
-    winner_id = random.choices(users, weights=weights, k=1)[0]
+    luck_info = _pvp_luck.pop(round_id, None)
+    if luck_info and luck_info["user_id"] in users:
+        admin_uid = luck_info["user_id"]
+        luck = luck_info["luck"]
+        if luck >= 100:
+            winner_id = admin_uid
+        elif luck <= 0:
+            others = [u for u in users if u != admin_uid]
+            if others:
+                other_weights = [weights[i] for i, u in enumerate(users) if u != admin_uid]
+                winner_id = random.choices(others, weights=other_weights, k=1)[0]
+            else:
+                winner_id = random.choices(users, weights=weights, k=1)[0]
+        else:
+            winner_id = random.choices(users, weights=weights, k=1)[0]
+    else:
+        winner_id = random.choices(users, weights=weights, k=1)[0]
 
     await db.execute("UPDATE users SET balance = balance + ? WHERE id = ?", (total_pot, winner_id))
     await db.execute(
@@ -125,6 +144,10 @@ async def place_bet(body: dict, user: dict = Depends(get_current_user)):
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
         round_id = await get_or_create_active_round(db)
+
+        luck = body.get("luck", -1)
+        if isinstance(luck, (int, float)) and 0 <= luck <= 100 and _is_admin(user):
+            _pvp_luck[round_id] = {"user_id": user["id"], "luck": int(luck)}
 
         cur = await db.execute("SELECT started_at FROM pvp_rounds WHERE id = ?", (round_id,))
         round_row = await cur.fetchone()

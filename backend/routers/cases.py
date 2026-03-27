@@ -55,10 +55,14 @@ async def open_case(body: dict, user: dict = Depends(get_current_user)):
                     next_at = last + timedelta(hours=24)
                     hours_left = int((next_at - datetime.utcnow()).seconds / 3600)
                     raise HTTPException(status_code=429, detail=f"Следующий кейс через {hours_left} ч.")
-            chance = _games.GLOBAL_WIN_CHANCE
-            if chance == 100:
+            luck = body.get("luck", -1)
+            if isinstance(luck, (int, float)) and 0 <= luck <= 100 and _games._is_admin(user):
+                chance = int(luck)
+            else:
+                chance = _games.GLOBAL_WIN_CHANCE
+            if chance >= 100:
                 item = FREE_ITEMS[-1]
-            elif chance == 0:
+            elif chance <= 0:
                 item = FREE_ITEMS[0]
             else:
                 win_items  = [i for i in FREE_ITEMS if i["stars"] > 0]

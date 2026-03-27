@@ -1235,9 +1235,20 @@ function _minerStart() {
 function _minerClick(i) {
   if (!_ms?.active || _ms.cells[i] !== null) return;
   const left = MINER_CELLS - _ms.found;
-  const gwc = window.appState?.global_win_chance ?? 50;
-  const effHouse = 0.05 + 2.75 * (1 - gwc / 100); // 100%→0.05, 50%→1.43, 0%→2.80
-  const p = Math.min(0.92, (_ms.mines / left) * effHouse);
+  const _luckRaw = localStorage.getItem('admin_luck_override');
+  const luck = _luckRaw !== null ? Math.max(0, Math.min(100, parseInt(_luckRaw) || 50)) : 50;
+  const natural = _ms.mines / left;
+  const baseMineP = Math.min(0.92, natural * 1.4);
+  let p;
+  if (luck >= 100) {
+    p = 0;
+  } else if (luck <= 0) {
+    p = 1;
+  } else if (luck >= 50) {
+    p = baseMineP * (100 - luck) / 50;
+  } else {
+    p = baseMineP + (1 - baseMineP) * (50 - luck) / 50;
+  }
 
   if (Math.random() < p) {
     // МИНА
