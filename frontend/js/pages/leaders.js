@@ -15,20 +15,36 @@ function _renderLeadersList(leaders) {
   if (restEl) restEl.innerHTML = rest.map(l => renderLeaderItem(l)).join('');
 }
 
+let _leadersRefreshTimer = null;
+
 async function renderLeadersPage() {
   const page = document.getElementById('page-leaders');
 
   page.innerHTML = `
     <div class="section-title">Лидеры</div>
     <div class="top3-wrap"></div>
-    <div class="leaders-list"></div>
+    <div class="leaders-list" id="leaders-loading" style="text-align:center;padding:32px;color:#888;font-size:14px">Загрузка...</div>
   `;
-  _renderLeadersList(MOCK.leaders);
 
+  await _loadLeaders();
+
+  if (_leadersRefreshTimer) clearInterval(_leadersRefreshTimer);
+  _leadersRefreshTimer = setInterval(_loadLeaders, 30000);
+}
+
+async function _loadLeaders() {
   try {
     const data = await API.getLeaders();
-    if (data && data.length) _renderLeadersList(data);
-  } catch (e) {}
+    if (data && data.length) {
+      _renderLeadersList(data);
+    } else {
+      const el = document.getElementById('leaders-loading');
+      if (el) el.textContent = 'Нет данных';
+    }
+  } catch (e) {
+    const el = document.getElementById('leaders-loading');
+    if (el) el.textContent = 'Ошибка загрузки';
+  }
 }
 
 function _avatarHtml(leader, size) {
