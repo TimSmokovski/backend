@@ -85,6 +85,15 @@ function renderLiveBar() {
 }
 
 
+const _modeIcons = {
+  pvp: `<svg viewBox="0 0 24 24" width="26" height="26" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2L4 5.5V11.5C4 15.8 7.4 19.7 12 21C16.6 19.7 20 15.8 20 11.5V5.5L12 2Z" fill="white" fill-opacity="0.15" stroke="white" stroke-opacity="0.85" stroke-width="1.4" stroke-linejoin="round"/><line x1="7.5" y1="8" x2="16.5" y2="16" stroke="white" stroke-width="2.2" stroke-linecap="round"/><line x1="16.5" y1="8" x2="7.5" y2="16" stroke="white" stroke-width="2.2" stroke-linecap="round"/><line x1="6" y1="9.4" x2="7.5" y2="8" stroke="white" stroke-opacity="0.6" stroke-width="1.8" stroke-linecap="round"/><line x1="18" y1="9.4" x2="16.5" y2="8" stroke="white" stroke-opacity="0.6" stroke-width="1.8" stroke-linecap="round"/></svg>`,
+  free: `<svg viewBox="0 0 24 24" width="26" height="26" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="11" width="18" height="11" rx="2" fill="white" fill-opacity="0.88"/><rect x="2" y="7.5" width="20" height="4" rx="1.5" fill="white" fill-opacity="0.65"/><rect x="10.5" y="7.5" width="3" height="14.5" fill="#ff6eb4" fill-opacity="0.9"/><rect x="2" y="10" width="20" height="2.2" fill="#ff6eb4" fill-opacity="0.9"/><path d="M11.5 7.5C9 5 5.5 5.5 5.5 7.5C5.5 9 8.5 9.2 11.5 8.2Z" fill="#ff3d87"/><path d="M12.5 7.5C15 5 18.5 5.5 18.5 7.5C18.5 9 15.5 9.2 12.5 8.2Z" fill="#ff3d87"/></svg>`,
+  roulette: `<svg viewBox="0 0 24 24" width="26" height="26" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="9.5" fill="white" fill-opacity="0.1" stroke="white" stroke-opacity="0.9" stroke-width="1.5"/><circle cx="12" cy="12" r="5.5" fill="white" fill-opacity="0.06" stroke="white" stroke-opacity="0.35" stroke-width="1"/><line x1="12" y1="2.5" x2="12" y2="6.5" stroke="white" stroke-opacity="0.85" stroke-width="1.5"/><line x1="12" y1="17.5" x2="12" y2="21.5" stroke="white" stroke-opacity="0.85" stroke-width="1.5"/><line x1="2.5" y1="12" x2="6.5" y2="12" stroke="white" stroke-opacity="0.85" stroke-width="1.5"/><line x1="17.5" y1="12" x2="21.5" y2="12" stroke="white" stroke-opacity="0.85" stroke-width="1.5"/><line x1="4.8" y1="4.8" x2="7.6" y2="7.6" stroke="white" stroke-opacity="0.55" stroke-width="1.3"/><line x1="16.4" y1="16.4" x2="19.2" y2="19.2" stroke="white" stroke-opacity="0.55" stroke-width="1.3"/><line x1="19.2" y1="4.8" x2="16.4" y2="7.6" stroke="white" stroke-opacity="0.55" stroke-width="1.3"/><line x1="7.6" y1="16.4" x2="4.8" y2="19.2" stroke="white" stroke-opacity="0.55" stroke-width="1.3"/><circle cx="12" cy="12" r="2.6" fill="white" fill-opacity="0.95"/><circle cx="12" cy="3" r="1.3" fill="#ff4444"/></svg>`,
+  crash: `<svg viewBox="0 0 24 24" width="26" height="26" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C9.8 4.5 8.5 8 8.5 12V15.5H15.5V12C15.5 8 14.2 4.5 12 2Z" fill="white" fill-opacity="0.92"/><path d="M10 5C9.5 7.5 9.5 10 9.5 12L10.5 12C10.5 10 10.5 7.5 11 5Z" fill="white" fill-opacity="0.28"/><path d="M8.5 11L5 17L9 15.5Z" fill="white" fill-opacity="0.78"/><path d="M15.5 11L19 17L15 15.5Z" fill="white" fill-opacity="0.78"/><rect x="9.5" y="15" width="5" height="1.2" rx="0.6" fill="black" fill-opacity="0.12"/><path d="M9.5 16.2C9.5 19 10.5 21.5 12 23C13.5 21.5 14.5 19 14.5 16.2Z" fill="#FFD700" fill-opacity="0.95"/><path d="M11 16.2C11 18.5 11.5 20.5 12 22C12.5 20.5 13 18.5 13 16.2Z" fill="white" fill-opacity="0.5"/><circle cx="12" cy="9" r="2.2" fill="none" stroke="#aee4ff" stroke-opacity="0.9" stroke-width="1.4"/><circle cx="12" cy="9" r="1.1" fill="#aee4ff" fill-opacity="0.65"/></svg>`,
+  slots: `<svg viewBox="0 0 24 24" width="26" height="26" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="6.5" width="20" height="13" rx="2.5" fill="white" fill-opacity="0.12" stroke="white" stroke-opacity="0.85" stroke-width="1.3"/><rect x="3.5" y="8.5" width="5" height="9" rx="1.2" fill="white" fill-opacity="0.18"/><rect x="9.5" y="8.5" width="5" height="9" rx="1.2" fill="white" fill-opacity="0.18"/><rect x="15.5" y="8.5" width="5" height="9" rx="1.2" fill="white" fill-opacity="0.18"/><text x="6" y="16" font-size="7.5" font-weight="900" fill="white" text-anchor="middle" font-family="Arial,sans-serif">7</text><text x="12" y="16" font-size="7.5" font-weight="900" fill="#FFD700" text-anchor="middle" font-family="Arial,sans-serif">7</text><text x="18" y="16" font-size="7.5" font-weight="900" fill="white" text-anchor="middle" font-family="Arial,sans-serif">7</text></svg>`,
+  miner: `<svg viewBox="0 0 24 24" width="26" height="26" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="14" r="7.5" fill="white" fill-opacity="0.88"/><circle cx="9.5" cy="11.5" r="2.8" fill="white" fill-opacity="0.25"/><path d="M12 6.5C13.5 4 16 3.2 17.5 4" stroke="white" stroke-opacity="0.85" stroke-width="2" stroke-linecap="round" fill="none"/><circle cx="18" cy="3.5" r="1.8" fill="#FFD700" fill-opacity="0.95"/><line x1="4.5" y1="14" x2="2.5" y2="14" stroke="white" stroke-opacity="0.85" stroke-width="2.2" stroke-linecap="round"/><line x1="19.5" y1="14" x2="21.5" y2="14" stroke="white" stroke-opacity="0.85" stroke-width="2.2" stroke-linecap="round"/><line x1="12" y1="21.5" x2="12" y2="23.5" stroke="white" stroke-opacity="0.85" stroke-width="2.2" stroke-linecap="round"/><line x1="6.9" y1="19.1" x2="5.5" y2="20.5" stroke="white" stroke-opacity="0.85" stroke-width="2.2" stroke-linecap="round"/><line x1="17.1" y1="19.1" x2="18.5" y2="20.5" stroke="white" stroke-opacity="0.85" stroke-width="2.2" stroke-linecap="round"/></svg>`,
+};
+
 function renderCasesPage() {
   const page = document.getElementById('page-cases');
   page.innerHTML = `
@@ -96,7 +105,7 @@ function renderCasesPage() {
     </div>
     <div class="modes-list">
       <div class="mode-card pvp" onclick="openPvp()">
-        <div class="mode-icon-wrap pvp-icon">⚔️</div>
+        <div class="mode-icon-wrap pvp-icon">${_modeIcons.pvp}</div>
         <div class="mode-info">
           <div class="mode-name">PvP</div>
           <div class="mode-desc">Сразись с другим игроком</div>
@@ -104,7 +113,7 @@ function renderCasesPage() {
         <div class="mode-badge online">● Онлайн</div>
       </div>
       <div class="mode-card free" onclick="openFreeCase()">
-        <div class="mode-icon-wrap free-icon">🎁</div>
+        <div class="mode-icon-wrap free-icon">${_modeIcons.free}</div>
         <div class="mode-info">
           <div class="mode-name">Бесплатно</div>
           <div class="mode-desc">1 кейс в день бесплатно</div>
@@ -112,14 +121,14 @@ function renderCasesPage() {
         <div class="mode-badge free-badge">Бесплатно</div>
       </div>
       <div class="mode-card roulette" onclick="openRoulette()">
-        <div class="mode-icon-wrap roulette-icon">🎡</div>
+        <div class="mode-icon-wrap roulette-icon">${_modeIcons.roulette}</div>
         <div class="mode-info">
           <div class="mode-name">Рулетка</div>
           <div class="mode-desc">Больше ставка — лучше награды</div>
         </div>
       </div>
       <div class="mode-card crash" onclick="openCrash()">
-        <div class="mode-icon-wrap crash-icon">🚀</div>
+        <div class="mode-icon-wrap crash-icon">${_modeIcons.crash}</div>
         <div class="mode-info">
           <div class="mode-name">Краш</div>
           <div class="mode-desc">Успей вывести до краша</div>
@@ -127,19 +136,18 @@ function renderCasesPage() {
         <div class="mode-badge online">● Онлайн</div>
       </div>
       <div class="mode-card slots" onclick="openSlots()">
-        <div class="mode-icon-wrap slots-icon">🎰</div>
+        <div class="mode-icon-wrap slots-icon">${_modeIcons.slots}</div>
         <div class="mode-info">
           <div class="mode-name">Слоты</div>
           <div class="mode-desc">Три символа — и ты богач</div>
         </div>
       </div>
-      <div class="mode-card" style="opacity:0.6;cursor:default">
-        <div class="mode-icon-wrap" style="background:linear-gradient(135deg,#546e7a,#37474f)">💣</div>
+      <div class="mode-card" onclick="openMiner()">
+        <div class="mode-icon-wrap" style="background:linear-gradient(135deg,#546e7a,#37474f)">${_modeIcons.miner}</div>
         <div class="mode-info">
           <div class="mode-name">Сапёр</div>
           <div class="mode-desc">Найди мины — забери приз</div>
         </div>
-        <div class="mode-badge" style="background:rgba(255,255,255,0.08);color:var(--text2)">Скоро</div>
       </div>
     </div>
     <div style="padding: 0 12px 12px;">
@@ -1176,4 +1184,157 @@ function _crashRenderControls(phase, multiplier) {
     ctrl.innerHTML = `<div class="crash-next-round">Следующий раунд через несколько секунд...</div>`;
     if (crashInRound) crashInRound = false;
   }
+}
+
+// ===== MINER (САПЁР) =====
+// Мины не предопределены — решение принимается при каждом клике (on-the-fly)
+// Вероятность мины = (честная) × MINER_HOUSE, множитель = честный × MINER_CUT
+const MINER_CELLS = 12; // 4 строки × 3 столбца
+const MINER_HOUSE = 1.40; // накрутка вероятности мины (+40%)
+const MINER_CUT   = 0.93; // выплата 93% от честного за каждый шаг
+
+let _ms = null; // miner state
+
+function openMiner() {
+  showModal(`
+    <div class="modal-close-bar"><div class="modal-close-handle"></div></div>
+    <div class="miner-header">
+      <div class="miner-title">💣 САПЁР</div>
+    </div>
+    <div id="miner-content"></div>
+  `);
+  _ms = null;
+  _minerSetup();
+}
+
+function _minerSetup() {
+  const bal = window.appState?.balance ?? 0;
+  document.getElementById('miner-content').innerHTML = `
+    <div class="miner-section-label">Количество мин</div>
+    <div class="miner-mine-row" id="miner-mine-row">
+      ${[1,2,3,4,5,6].map(m =>
+        `<button class="miner-mine-btn${m===3?' miner-mine-active':''}" onclick="_minerPick(${m})">${m}</button>`
+      ).join('')}
+    </div>
+    <div class="miner-section-label" style="margin-top:14px">Ставка</div>
+    <div class="crash-bet-row" style="margin-bottom:8px">
+      <input id="miner-bet" class="crash-bet-input" type="number" min="1" max="${bal}" value="100">
+      <button class="crash-qbet" style="padding:11px 10px;font-size:13px" onclick="document.getElementById('miner-bet').value=Math.max(1,Math.floor((window.appState?.balance??0)/2))">½</button>
+      <button class="crash-qbet" style="padding:11px 10px;font-size:13px" onclick="document.getElementById('miner-bet').value=window.appState?.balance??0">MAX</button>
+    </div>
+    <div class="crash-quick-bets" style="margin-bottom:16px">
+      ${[50,100,250,500,1000].map(b =>
+        `<button class="crash-qbet" onclick="document.getElementById('miner-bet').value=${b}">${_goldStar(12)} ${b}</button>`
+      ).join('')}
+    </div>
+    <button class="btn-spin" onclick="_minerStart()">Начать игру</button>
+    <div class="miner-rules">Поле 4×3 · Открывай ячейки · Бери выигрыш в любой момент</div>
+  `;
+  window._minerMines = 3;
+}
+
+function _minerPick(n) {
+  window._minerMines = n;
+  document.querySelectorAll('.miner-mine-btn').forEach((b, i) => {
+    b.classList.toggle('miner-mine-active', i + 1 === n);
+  });
+}
+
+function _minerStart() {
+  const bet = parseInt(document.getElementById('miner-bet').value) || 0;
+  const mines = window._minerMines || 3;
+  if (bet < 1) return showToast('Введите ставку');
+  if (bet > (window.appState?.balance ?? 0)) return showToast('Недостаточно звёзд');
+
+  if (window.appState) window.appState.balance -= bet;
+  updateBalance();
+
+  _ms = { bet, mines, found: 0, mult: 1.0, active: true,
+          cells: new Array(MINER_CELLS).fill(null) };
+  _minerRender();
+}
+
+function _minerClick(i) {
+  if (!_ms?.active || _ms.cells[i] !== null) return;
+  const left = MINER_CELLS - _ms.found;
+  const p = Math.min(0.92, (_ms.mines / left) * MINER_HOUSE);
+
+  if (Math.random() < p) {
+    // МИНА
+    _ms.cells[i] = 'mine';
+    _ms.active = false;
+    _ms.cells = _ms.cells.map(c => c === null ? 'ghost' : c);
+    _minerRender();
+    if (window.Telegram?.WebApp?.HapticFeedback)
+      window.Telegram.WebApp.HapticFeedback.notificationOccurred('error');
+    setTimeout(() => showToast(`💥 Подорвался! −${_ms.bet.toLocaleString()} ⭐`), 120);
+  } else {
+    // БЕЗОПАСНО
+    _ms.cells[i] = 'safe';
+    _ms.found++;
+    const stepMult = (left / (left - _ms.mines)) * MINER_CUT;
+    _ms.mult *= stepMult;
+
+    const maxSafe = MINER_CELLS - _ms.mines;
+    if (_ms.found >= maxSafe) {
+      _ms.active = false;
+      const win = Math.floor(_ms.bet * _ms.mult);
+      if (window.appState) window.appState.balance += win;
+      updateBalance();
+      _minerRender();
+      if (win >= 100) API.recordWin('💎', 'Сапёр', win);
+      showWin('💎', 'Все мины найдены!', `⭐ ${win.toLocaleString()}`);
+    } else {
+      _minerRender();
+    }
+  }
+}
+
+function _minerCashout() {
+  if (!_ms?.active || _ms.found === 0) return;
+  _ms.active = false;
+  const win = Math.floor(_ms.bet * _ms.mult);
+  if (window.appState) window.appState.balance += win;
+  updateBalance();
+  if (win >= 100) API.recordWin('💣', 'Сапёр', win);
+  _minerRender();
+  showWin('💰', 'Забрал выигрыш!', `⭐ ${win.toLocaleString()}`);
+}
+
+function _minerRender() {
+  const el = document.getElementById('miner-content');
+  if (!el || !_ms) return;
+  const { mult, bet, found, mines, active, cells } = _ms;
+  const potential = Math.floor(bet * mult);
+
+  const grid = cells.map((c, i) => {
+    if (c === 'safe')  return `<div class="miner-cell miner-safe">💎</div>`;
+    if (c === 'mine')  return `<div class="miner-cell miner-boom">💥</div>`;
+    if (c === 'ghost') return `<div class="miner-cell miner-ghost">💣</div>`;
+    if (!active)       return `<div class="miner-cell miner-closed"></div>`;
+    return `<div class="miner-cell miner-closed" onclick="_minerClick(${i})"></div>`;
+  }).join('');
+
+  const bottom = active && found > 0
+    ? `<button class="btn-miner-cashout" onclick="_minerCashout()">
+         ВЫВЕСТИ ${_goldStar(18)} ${potential.toLocaleString()} · ${mult.toFixed(2)}x
+       </button>`
+    : !active
+    ? `<button class="btn-spin btn-again" style="margin-top:4px" onclick="_minerSetup()">Сыграть ещё</button>`
+    : `<div class="miner-hint">Открывай ячейки · мин: ${mines}</div>`;
+
+  el.innerHTML = `
+    <div class="miner-game-top">
+      <div>
+        <div class="miner-big-mult">${mult.toFixed(2)}x</div>
+        <div class="miner-small-label">множитель</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:16px;font-weight:800;color:var(--gold)">${_goldStar(14)} ${potential.toLocaleString()}</div>
+        <div class="miner-small-label">ставка ${bet.toLocaleString()} · мин ${mines}</div>
+      </div>
+    </div>
+    <div class="miner-grid">${grid}</div>
+    ${bottom}
+  `;
 }

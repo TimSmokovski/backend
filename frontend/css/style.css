@@ -302,6 +302,28 @@ html, body { height: 100%; overflow: hidden; font-family: 'Inter', sans-serif; b
 .leader-stars { font-size: 12px; color: var(--gold); display: flex; align-items: center; gap: 3px; margin-top: 2px; }
 .leader-prize { font-size: 22px; }
 
+/* ===== MINER GAME ===== */
+.miner-header { text-align:center; margin-bottom:14px; }
+.miner-title { font-size:22px; font-weight:900; letter-spacing:2px; }
+.miner-section-label { font-size:10px; font-weight:800; color:var(--text3); letter-spacing:1.2px; text-transform:uppercase; margin-bottom:8px; }
+.miner-mine-row { display:flex; gap:6px; }
+.miner-mine-btn { flex:1; padding:10px 4px; background:var(--bg3); border:1px solid rgba(255,255,255,0.07); border-radius:10px; color:var(--text2); font-size:14px; font-weight:700; cursor:pointer; text-align:center; transition:all 0.15s; }
+.miner-mine-active { background:linear-gradient(135deg,#546e7a,#37474f); border-color:rgba(144,164,174,0.45); color:white; }
+.miner-rules { font-size:11px; color:var(--text3); text-align:center; margin-top:12px; padding:10px; background:var(--bg3); border-radius:10px; }
+.miner-game-top { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+.miner-big-mult { font-size:36px; font-weight:900; color:var(--gold); line-height:1; }
+.miner-small-label { font-size:10px; color:var(--text3); letter-spacing:0.5px; }
+.miner-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:12px; }
+.miner-cell { aspect-ratio:1; border-radius:14px; display:flex; align-items:center; justify-content:center; font-size:28px; transition:transform 0.1s; }
+.miner-closed { background:var(--bg3); border:1px solid rgba(255,255,255,0.08); cursor:pointer; }
+.miner-closed:active { transform:scale(0.9); }
+.miner-safe { background:rgba(46,204,113,0.18); border:1px solid rgba(46,204,113,0.38); animation:miner-pop 0.18s ease-out; }
+.miner-boom { background:rgba(231,76,60,0.28); border:1px solid rgba(231,76,60,0.5); }
+.miner-ghost { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.04); opacity:0.3; }
+.miner-hint { text-align:center; font-size:12px; color:var(--text3); padding:14px; background:var(--bg3); border-radius:12px; }
+.btn-miner-cashout { width:100%; padding:15px; border-radius:12px; background:linear-gradient(135deg,#27ae60,#1e8449); color:white; font-size:16px; font-weight:900; border:none; cursor:pointer; animation:cashout-pulse 0.45s ease-in-out infinite alternate; display:flex; align-items:center; justify-content:center; gap:5px; }
+@keyframes miner-pop { from{transform:scale(0.6);opacity:0} to{transform:scale(1);opacity:1} }
+
 /* ===== PROFILE PAGE ===== */
 .profile-ref-card {
   margin: 12px; padding: 20px; background: var(--card);
