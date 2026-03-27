@@ -39,6 +39,7 @@ async def get_current_user(
     tg_id = user_data.get("id", 999999)
     name = user_data.get("first_name", "Игрок")
     username = user_data.get("username")
+    photo_url = user_data.get("photo_url")
 
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
@@ -46,10 +47,16 @@ async def get_current_user(
         user = await cursor.fetchone()
         if not user:
             await db.execute(
-                "INSERT INTO users (id, name, username) VALUES (?, ?, ?)",
-                (tg_id, name, username),
+                "INSERT INTO users (id, name, username, photo_url) VALUES (?, ?, ?, ?)",
+                (tg_id, name, username, photo_url),
             )
             await db.commit()
-            cursor = await db.execute("SELECT * FROM users WHERE id = ?", (tg_id,))
-            user = await cursor.fetchone()
+        elif photo_url and photo_url != user["photo_url"]:
+            await db.execute(
+                "UPDATE users SET photo_url = ? WHERE id = ?",
+                (photo_url, tg_id),
+            )
+            await db.commit()
+        cursor = await db.execute("SELECT * FROM users WHERE id = ?", (tg_id,))
+        user = await cursor.fetchone()
         return dict(user)

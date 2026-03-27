@@ -31,6 +31,14 @@ function renderLeadersPage() {
   startTimer();
 }
 
+function _avatarHtml(leader, size) {
+  if (leader.photo_url) {
+    return `<img src="${leader.photo_url}" alt="" style="width:${size}px;height:${size}px;border-radius:50%;object-fit:cover;display:block;">`;
+  }
+  const letter = (leader.name || 'И')[0].toUpperCase();
+  return `<span style="font-size:${Math.round(size * 0.45)}px;font-weight:700;">${letter}</span>`;
+}
+
 function renderTop3Item(leader, rank) {
   if (!leader) return '<div class="top3-item"></div>';
   const medals = { 1: '🥇', 2: '🥈', 3: '🥉' };
@@ -43,7 +51,7 @@ function renderTop3Item(leader, rank) {
   return `
     <div class="top3-item ${rank === 1 ? 'first' : ''}">
       <div class="top3-rank">${medals[rank]}</div>
-      <div class="top3-avatar">${leader.avatar}</div>
+      <div class="top3-avatar">${_avatarHtml(leader, 48)}</div>
       <div class="top3-name">${leader.name}</div>
       <div class="top3-stars">${stars} ${_goldStar(18)}</div>
       ${leader.prize ? `<div style="font-size:20px;margin-top:6px">${leader.prize}</div>` : ''}
@@ -61,7 +69,7 @@ function renderLeaderItem(leader) {
   return `
     <div class="leader-item">
       <div class="leader-rank">${leader.rank}</div>
-      <div class="leader-avatar">${leader.avatar}</div>
+      <div class="leader-avatar">${_avatarHtml(leader, 38)}</div>
       <div class="leader-info">
         <div class="leader-name">${leader.name}</div>
         <div class="leader-stars">${stars} ${_goldStar(18)}</div>

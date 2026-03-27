@@ -13,5 +13,6 @@ async def get_me(user: dict = Depends(get_current_user)):
         "name": user["name"],
         "username": user["username"],
         "balance": user["balance"],
+        "photo_url": user["photo_url"],
         "avatar": (user["name"] or "И")[0].upper(),
     }

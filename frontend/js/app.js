@@ -17,6 +17,7 @@ if (tg) {
   if (user) {
     window.appState.id = user.id;
     window.appState.name = user.first_name || 'Игрок';
+    window.appState.photo_url = user.photo_url || null;
     window.appState.avatar = (user.first_name || 'И')[0].toUpperCase();
   }
 }
@@ -126,6 +127,17 @@ function updateBalance() {
   if (el) el.textContent = (window.appState.balance || 0).toLocaleString();
 }
 
+function _setTopbarAvatar() {
+  const el = document.getElementById('user-avatar');
+  if (!el) return;
+  const photo = window.appState.photo_url;
+  if (photo) {
+    el.innerHTML = `<img src="${photo}" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;">`;
+  } else {
+    el.textContent = window.appState.avatar || window.appState.name?.[0] || '?';
+  }
+}
+
 // ===== INIT =====
 function showApp() {
   document.getElementById('loader').classList.add('hidden');
@@ -138,7 +150,7 @@ async function init() {
 
   try {
     document.getElementById('user-name').textContent = window.appState.name;
-    document.getElementById('user-avatar').textContent = window.appState.avatar || '?';
+    _setTopbarAvatar();
     updateBalance();
     renderCasesPage();
     initLiveBar();
@@ -160,7 +172,7 @@ async function init() {
     if (userData) {
       window.appState = { ...window.appState, ...userData };
       document.getElementById('user-name').textContent = window.appState.name;
-      document.getElementById('user-avatar').textContent = window.appState.avatar || window.appState.name?.[0] || '?';
+      _setTopbarAvatar();
       updateBalance();
     }
   } catch (e) {}
