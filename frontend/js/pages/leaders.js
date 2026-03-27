@@ -1,11 +1,22 @@
 // ===== LEADERS PAGE =====
 let timerInterval = null;
 
-function renderLeadersPage() {
+function _renderLeadersList(leaders) {
   const page = document.getElementById('page-leaders');
-  const leaders = MOCK.leaders;
   const top3 = leaders.slice(0, 3);
   const rest = leaders.slice(3);
+  const listsEl = page.querySelector('.top3-wrap');
+  const restEl = page.querySelector('.leaders-list');
+  if (listsEl) listsEl.innerHTML = `
+    ${renderTop3Item(top3[1], 2)}
+    ${renderTop3Item(top3[0], 1)}
+    ${renderTop3Item(top3[2], 3)}
+  `;
+  if (restEl) restEl.innerHTML = rest.map(l => renderLeaderItem(l)).join('');
+}
+
+async function renderLeadersPage() {
+  const page = document.getElementById('page-leaders');
 
   page.innerHTML = `
     <div class="section-title">Лидеры</div>
@@ -18,17 +29,17 @@ function renderLeadersPage() {
         <div class="timer-block"><div class="timer-val" id="t-secs">0</div><div class="timer-label">секунд</div></div>
       </div>
     </div>
-    <div class="top3-wrap">
-      ${renderTop3Item(top3[1], 2)}
-      ${renderTop3Item(top3[0], 1)}
-      ${renderTop3Item(top3[2], 3)}
-    </div>
-    <div class="leaders-list">
-      ${rest.map(l => renderLeaderItem(l)).join('')}
-    </div>
+    <div class="top3-wrap"></div>
+    <div class="leaders-list"></div>
   `;
 
   startTimer();
+  _renderLeadersList(MOCK.leaders);
+
+  try {
+    const data = await API.getLeaders();
+    if (data && data.length) _renderLeadersList(data);
+  } catch (e) {}
 }
 
 function _avatarHtml(leader, size) {
