@@ -70,7 +70,7 @@ function doInvite() {
   const user = window.appState;
   const link = `https://t.me/YourBot?start=ref_${user?.id || 'user'}`;
   if (tg?.switchInlineQuery) {
-    tg.switchInlineQuery(`Играй со мной в CaseArena и получи бонус! ${link}`);
+    tg.switchInlineQuery(`Играй со мной в DC_GalaxySpinBot и получи бонус! ${link}`);
   } else {
     copyToClipboard(link);
     showToast('🔗 Ссылка скопирована!');
