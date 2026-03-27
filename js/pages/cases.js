@@ -85,67 +85,6 @@ function renderLiveBar() {
 }
 
 
-const _modeIcons = {
-  pvp: `<svg viewBox="0 0 24 24" width="26" height="26" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M12 2L4 5.5V11.5C4 15.8 7.4 19.7 12 21C16.6 19.7 20 15.8 20 11.5V5.5L12 2Z" fill="white" fill-opacity="0.15" stroke="white" stroke-width="1.5" stroke-linejoin="round"/>
-    <line x1="8" y1="8.5" x2="16" y2="15.5" stroke="white" stroke-width="2.2" stroke-linecap="round"/>
-    <line x1="16" y1="8.5" x2="8" y2="15.5" stroke="white" stroke-width="2.2" stroke-linecap="round"/>
-    <line x1="6.5" y1="7" x2="8" y2="8.5" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
-    <line x1="17.5" y1="7" x2="16" y2="8.5" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
-  </svg>`,
-  free: `<svg viewBox="0 0 24 24" width="26" height="26" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect x="3" y="11" width="18" height="11" rx="2" fill="white" fill-opacity="0.85"/>
-    <rect x="2" y="7.5" width="20" height="4" rx="1.5" fill="white" fill-opacity="0.65"/>
-    <rect x="10.5" y="7.5" width="3" height="14.5" fill="#ff85c2" fill-opacity="0.85"/>
-    <rect x="2" y="10" width="20" height="2.2" fill="#ff85c2" fill-opacity="0.85"/>
-    <path d="M11.5 7.5C9 5 5.5 5.5 5.5 7.5C5.5 9 8 9.5 11.5 8.5Z" fill="#ff4da6"/>
-    <path d="M12.5 7.5C15 5 18.5 5.5 18.5 7.5C18.5 9 16 9.5 12.5 8.5Z" fill="#ff4da6"/>
-  </svg>`,
-  roulette: `<svg viewBox="0 0 24 24" width="26" height="26" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <circle cx="12" cy="12" r="9.5" stroke="white" stroke-width="1.5" fill="white" fill-opacity="0.08"/>
-    <circle cx="12" cy="12" r="2.8" fill="white" fill-opacity="0.9"/>
-    <line x1="12" y1="2.5" x2="12" y2="9.2" stroke="white" stroke-width="1.4" opacity="0.75"/>
-    <line x1="12" y1="14.8" x2="12" y2="21.5" stroke="white" stroke-width="1.4" opacity="0.75"/>
-    <line x1="2.5" y1="12" x2="9.2" y2="12" stroke="white" stroke-width="1.4" opacity="0.75"/>
-    <line x1="14.8" y1="12" x2="21.5" y2="12" stroke="white" stroke-width="1.4" opacity="0.75"/>
-    <line x1="5" y1="5" x2="9.9" y2="9.9" stroke="white" stroke-width="1.4" opacity="0.6"/>
-    <line x1="14.1" y1="14.1" x2="19" y2="19" stroke="white" stroke-width="1.4" opacity="0.6"/>
-    <line x1="19" y1="5" x2="14.1" y2="9.9" stroke="white" stroke-width="1.4" opacity="0.6"/>
-    <line x1="9.9" y1="14.1" x2="5" y2="19" stroke="white" stroke-width="1.4" opacity="0.6"/>
-    <circle cx="12" cy="3" r="1.3" fill="white"/>
-  </svg>`,
-  crash: `<svg viewBox="0 0 24 24" width="26" height="26" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M12 2C9.8 4.5 8.5 8 8.5 12V15H15.5V12C15.5 8 14.2 4.5 12 2Z" fill="white" fill-opacity="0.9"/>
-    <path d="M8.5 10.5L5 16.5L9 15Z" fill="white" fill-opacity="0.75"/>
-    <path d="M15.5 10.5L19 16.5L15 15Z" fill="white" fill-opacity="0.75"/>
-    <path d="M9.5 15C9.5 17.5 10.5 20 12 22C13.5 20 14.5 17.5 14.5 15Z" fill="#FFD43B" fill-opacity="0.95"/>
-    <circle cx="12" cy="9.5" r="2.2" fill="none" stroke="#aee4ff" stroke-width="1.4"/>
-    <circle cx="12" cy="9.5" r="1" fill="#aee4ff" fill-opacity="0.7"/>
-  </svg>`,
-  slots: `<svg viewBox="0 0 24 24" width="26" height="26" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect x="2" y="7" width="20" height="13" rx="2.5" fill="white" fill-opacity="0.12" stroke="white" stroke-width="1.4"/>
-    <rect x="3.5" y="9" width="5" height="9" rx="1.2" fill="white" fill-opacity="0.18"/>
-    <rect x="9.5" y="9" width="5" height="9" rx="1.2" fill="white" fill-opacity="0.18"/>
-    <rect x="15.5" y="9" width="5" height="9" rx="1.2" fill="white" fill-opacity="0.18"/>
-    <text x="6" y="16.5" font-size="7.5" font-weight="900" fill="white" text-anchor="middle" font-family="Arial,sans-serif">7</text>
-    <text x="12" y="16.5" font-size="7.5" font-weight="900" fill="white" text-anchor="middle" font-family="Arial,sans-serif">7</text>
-    <text x="18" y="16.5" font-size="7.5" font-weight="900" fill="white" text-anchor="middle" font-family="Arial,sans-serif">7</text>
-    <rect x="21.5" y="7" width="1.5" height="5" rx="0.75" fill="white" fill-opacity="0.7"/>
-    <circle cx="22.25" cy="6.5" r="1.5" fill="white" fill-opacity="0.85"/>
-  </svg>`,
-  miner: `<svg viewBox="0 0 24 24" width="26" height="26" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <circle cx="12" cy="14" r="7.5" fill="white" fill-opacity="0.85"/>
-    <circle cx="9.5" cy="11.5" r="2.8" fill="white" fill-opacity="0.28"/>
-    <path d="M12 6.5C13.5 4 16 3.5 17.5 4.5" stroke="white" stroke-width="2" stroke-linecap="round" fill="none" fill-opacity="0.8"/>
-    <circle cx="18" cy="3.8" r="1.8" fill="#FFD43B" fill-opacity="0.95"/>
-    <line x1="4.5" y1="14" x2="2.5" y2="14" stroke="white" stroke-width="2.2" stroke-linecap="round" opacity="0.8"/>
-    <line x1="19.5" y1="14" x2="21.5" y2="14" stroke="white" stroke-width="2.2" stroke-linecap="round" opacity="0.8"/>
-    <line x1="12" y1="21.5" x2="12" y2="23.5" stroke="white" stroke-width="2.2" stroke-linecap="round" opacity="0.8"/>
-    <line x1="6.7" y1="19.3" x2="5.3" y2="20.7" stroke="white" stroke-width="2.2" stroke-linecap="round" opacity="0.8"/>
-    <line x1="17.3" y1="19.3" x2="18.7" y2="20.7" stroke="white" stroke-width="2.2" stroke-linecap="round" opacity="0.8"/>
-  </svg>`,
-};
-
 function renderCasesPage() {
   const page = document.getElementById('page-cases');
   page.innerHTML = `
@@ -157,7 +96,7 @@ function renderCasesPage() {
     </div>
     <div class="modes-list">
       <div class="mode-card pvp" onclick="openPvp()">
-        <div class="mode-icon-wrap pvp-icon">${_modeIcons.pvp}</div>
+        <div class="mode-icon-wrap pvp-icon">⚔️</div>
         <div class="mode-info">
           <div class="mode-name">PvP</div>
           <div class="mode-desc">Сразись с другим игроком</div>
@@ -165,7 +104,7 @@ function renderCasesPage() {
         <div class="mode-badge online">● Онлайн</div>
       </div>
       <div class="mode-card free" onclick="openFreeCase()">
-        <div class="mode-icon-wrap free-icon">${_modeIcons.free}</div>
+        <div class="mode-icon-wrap free-icon">🎁</div>
         <div class="mode-info">
           <div class="mode-name">Бесплатно</div>
           <div class="mode-desc">1 кейс в день бесплатно</div>
@@ -173,14 +112,14 @@ function renderCasesPage() {
         <div class="mode-badge free-badge">Бесплатно</div>
       </div>
       <div class="mode-card roulette" onclick="openRoulette()">
-        <div class="mode-icon-wrap roulette-icon">${_modeIcons.roulette}</div>
+        <div class="mode-icon-wrap roulette-icon">🎡</div>
         <div class="mode-info">
           <div class="mode-name">Рулетка</div>
           <div class="mode-desc">Больше ставка — лучше награды</div>
         </div>
       </div>
       <div class="mode-card crash" onclick="openCrash()">
-        <div class="mode-icon-wrap crash-icon">${_modeIcons.crash}</div>
+        <div class="mode-icon-wrap crash-icon">🚀</div>
         <div class="mode-info">
           <div class="mode-name">Краш</div>
           <div class="mode-desc">Успей вывести до краша</div>
@@ -188,14 +127,14 @@ function renderCasesPage() {
         <div class="mode-badge online">● Онлайн</div>
       </div>
       <div class="mode-card slots" onclick="openSlots()">
-        <div class="mode-icon-wrap slots-icon">${_modeIcons.slots}</div>
+        <div class="mode-icon-wrap slots-icon">🎰</div>
         <div class="mode-info">
           <div class="mode-name">Слоты</div>
           <div class="mode-desc">Три символа — и ты богач</div>
         </div>
       </div>
       <div class="mode-card" style="opacity:0.6;cursor:default">
-        <div class="mode-icon-wrap" style="background:linear-gradient(135deg,#546e7a,#37474f)">${_modeIcons.miner}</div>
+        <div class="mode-icon-wrap" style="background:linear-gradient(135deg,#546e7a,#37474f)">💣</div>
         <div class="mode-info">
           <div class="mode-name">Сапёр</div>
           <div class="mode-desc">Найди мины — забери приз</div>
