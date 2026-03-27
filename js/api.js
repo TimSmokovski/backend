@@ -55,13 +55,13 @@ const API = {
 const MOCK = {
   user: { id: 1, name: 'Тестовый', balance: 5000, avatar: 'Т' },
   leaders: [
-    { rank: 1, name: 'KO3489KO', stars: 1960504, avatar: 'K', prize: '🎒' },
-    { rank: 2, name: 'pipnikbob', stars: 602276, avatar: 'P', prize: '🎒' },
-    { rank: 3, name: 'Пользователь', stars: 750481, avatar: 'П', prize: '🏆' },
-    { rank: 4, name: 'moongrabb', stars: 644506, avatar: 'M', prize: '🌟' },
-    { rank: 5, name: 'Пользователь', stars: 640430, avatar: 'П', prize: '' },
-    { rank: 6, name: 'Пользователь', stars: 640430, avatar: 'П', prize: '' },
-    { rank: 7, name: 'smuc236', stars: 448026, avatar: 'S', prize: '' },
+    { rank: 1, name: 'KO3489KO',     stars: 1960504, avatar: '🔥', prize: '🎒' },
+    { rank: 2, name: 'pipnikbob',    stars: 750481,  avatar: '💎', prize: '🎒' },
+    { rank: 3, name: 'moongrabb',    stars: 644506,  avatar: '🎯', prize: '🏆' },
+    { rank: 4, name: 'Пользователь', stars: 640430,  avatar: '🌙', prize: '💰' },
+    { rank: 5, name: 'Пользователь', stars: 602276,  avatar: '🎮', prize: '' },
+    { rank: 6, name: 'Пользователь', stars: 448026,  avatar: '🦊', prize: '' },
+    { rank: 7, name: 'smuc236',      stars: 310500,  avatar: '🎲', prize: '' },
   ],
   contests: [
     { id: 1, prizes: [{ emoji: '🧞', stars: 5009 }, { emoji: '👾', stars: 2814 }, { emoji: '👾', stars: 2814 }], prize_count: 12, participants: 308 },
