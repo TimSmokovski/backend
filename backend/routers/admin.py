@@ -1,7 +1,7 @@
 import os
 from fastapi import APIRouter, Depends, HTTPException
 import aiosqlite
-from database import DB_PATH
+from database import DB_PATH, set_setting
 from auth import get_current_user
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -93,4 +93,5 @@ async def set_roulette(body: dict, _admin: dict = Depends(require_admin)):
         raise HTTPException(400, f"Нужно {len(games.ROULETTE_WEIGHTS)} весов")
     for i, w in enumerate(weights):
         games.ROULETTE_WEIGHTS[i] = max(0, int(w))
+    await set_setting("roulette_weights", games.ROULETTE_WEIGHTS)
     return {"ok": True, "weights": games.ROULETTE_WEIGHTS}

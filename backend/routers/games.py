@@ -3,7 +3,7 @@ import math
 import asyncio
 from fastapi import APIRouter, Depends, HTTPException
 import aiosqlite
-from database import DB_PATH
+from database import DB_PATH, get_setting
 from auth import get_current_user
 
 router = APIRouter(tags=["games"])
@@ -102,6 +102,12 @@ def _gen_crash():
 
 
 async def crash_loop():
+    # Загружаем веса рулетки из БД при старте (если были изменены через админку)
+    saved_weights = await get_setting("roulette_weights")
+    if saved_weights and len(saved_weights) == len(ROULETTE_WEIGHTS):
+        for i, w in enumerate(saved_weights):
+            ROULETTE_WEIGHTS[i] = w
+
     while True:
         _crash.update({
             "phase": "waiting",
@@ -142,6 +148,13 @@ async def crash_loop():
             await asyncio.sleep(0.07)
 
         _crash["phase"] = "crashed"
+        # Помечаем незакрытые ставки этого раунда как проигрыш
+        async with aiosqlite.connect(DB_PATH) as db:
+            await db.execute(
+                "UPDATE crash_bets SET status = 'lost' WHERE round_id = ? AND status = 'active'",
+                (_crash["round_id"],),
+            )
+            await db.commit()
         _crash["round_id"] += 1
         await asyncio.sleep(4)
 
@@ -178,6 +191,10 @@ async def crash_bet(body: dict, user: dict = Depends(get_current_user)):
         raise HTTPException(400, "Недостаточно звёзд")
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute("UPDATE users SET balance = balance - ? WHERE id = ?", (bet, user["id"]))
+        await db.execute(
+            "INSERT INTO crash_bets (user_id, amount, round_id) VALUES (?, ?, ?)",
+            (user["id"], bet, _crash["round_id"]),
+        )
         await db.commit()
         cur = await db.execute("SELECT balance FROM users WHERE id = ?", (user["id"],))
         row = await cur.fetchone()
@@ -206,6 +223,11 @@ async def crash_cashout(user: dict = Depends(get_current_user)):
     p["cashout_mult"] = mult
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute("UPDATE users SET balance = balance + ? WHERE id = ?", (won, user["id"]))
+        await db.execute(
+            "UPDATE crash_bets SET status = 'won', won_amount = ? "
+            "WHERE user_id = ? AND round_id = ? AND status = 'active'",
+            (won, user["id"], _crash["round_id"]),
+        )
         await db.commit()
         cur = await db.execute("SELECT balance FROM users WHERE id = ?", (user["id"],))
         row = await cur.fetchone()

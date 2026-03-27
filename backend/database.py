@@ -11,6 +11,23 @@ async def get_db():
         yield db
 
 
+async def get_setting(key: str, default=None):
+    async with aiosqlite.connect(DB_PATH) as db:
+        cur = await db.execute("SELECT value FROM settings WHERE key = ?", (key,))
+        row = await cur.fetchone()
+    return json.loads(row[0]) if row else default
+
+
+async def set_setting(key: str, value):
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            "INSERT INTO settings (key, value) VALUES (?, ?) "
+            "ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+            (key, json.dumps(value)),
+        )
+        await db.commit()
+
+
 async def init_db():
     async with aiosqlite.connect(DB_PATH) as db:
         await db.executescript("""
@@ -21,7 +38,8 @@ async def init_db():
                 balance     INTEGER DEFAULT 1000,
                 ref_by      INTEGER,
                 created_at  TEXT DEFAULT (datetime('now')),
-                free_case_at TEXT
+                free_case_at TEXT,
+                photo_url   TEXT
             );
 
             CREATE TABLE IF NOT EXISTS pvp_rooms (
@@ -90,8 +108,30 @@ async def init_db():
                 contest_id  INTEGER NOT NULL,
                 user_id     INTEGER NOT NULL
             );
+
+            CREATE TABLE IF NOT EXISTS settings (
+                key   TEXT PRIMARY KEY,
+                value TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS crash_bets (
+                id         INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id    INTEGER NOT NULL,
+                amount     INTEGER NOT NULL,
+                round_id   INTEGER NOT NULL,
+                status     TEXT DEFAULT 'active',
+                won_amount INTEGER DEFAULT 0,
+                created_at TEXT DEFAULT (datetime('now'))
+            );
         """)
         await db.commit()
+
+        # Миграция: добавляем photo_url если колонки ещё нет
+        try:
+            await db.execute("ALTER TABLE users ADD COLUMN photo_url TEXT")
+            await db.commit()
+        except Exception:
+            pass
 
         # Заполняем задания
         cursor = await db.execute("SELECT COUNT(*) FROM tasks")
@@ -125,4 +165,18 @@ async def init_db():
                 "INSERT INTO contests (prizes_json, prize_count, participants) VALUES (?, ?, ?)",
                 contests,
             )
+            await db.commit()
+
+        # Рефанд незакрытых краш-ставок (сервер упал в середине раунда)
+        cur = await db.execute(
+            "SELECT user_id, SUM(amount) as total FROM crash_bets WHERE status = 'active' GROUP BY user_id"
+        )
+        stuck = await cur.fetchall()
+        if stuck:
+            for row in stuck:
+                await db.execute(
+                    "UPDATE users SET balance = balance + ? WHERE id = ?",
+                    (row[1], row[0]),
+                )
+            await db.execute("UPDATE crash_bets SET status = 'refunded' WHERE status = 'active'")
             await db.commit()
