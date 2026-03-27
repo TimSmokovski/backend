@@ -45,7 +45,7 @@ function renderTop3Item(leader, rank) {
       <div class="top3-rank">${medals[rank]}</div>
       <div class="top3-avatar">${leader.avatar}</div>
       <div class="top3-name">${leader.name}</div>
-      <div class="top3-stars">${_goldStar(16)} ${stars}</div>
+      <div class="top3-stars">${stars} ${_goldStar(18)}</div>
       ${leader.prize ? `<div style="font-size:20px;margin-top:6px">${leader.prize}</div>` : ''}
     </div>
   `;
@@ -64,7 +64,7 @@ function renderLeaderItem(leader) {
       <div class="leader-avatar">${leader.avatar}</div>
       <div class="leader-info">
         <div class="leader-name">${leader.name}</div>
-        <div class="leader-stars">${_goldStar(14)} ${stars}</div>
+        <div class="leader-stars">${stars} ${_goldStar(18)}</div>
       </div>
       <div class="leader-prize">${leader.prize || ''}</div>
     </div>
