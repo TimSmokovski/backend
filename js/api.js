@@ -43,6 +43,7 @@ const API = {
   pvpBet: (amount)              => apiCall('POST', '/pvp/bet', { amount }),
   pvpDraw: ()                   => apiCall('POST', '/pvp/draw'),
   spinRoulette: (bet, section)  => apiCall('POST', '/roulette/spin', { bet, section }),
+  crashState: ()                => apiCall('GET',  '/crash/state'),
   crashBet: (amount)            => apiCall('POST', '/crash/bet', { amount }),
   crashCashout: ()              => apiCall('POST', '/crash/cashout'),
   spinSlots: (bet)              => apiCall('POST', '/slots/spin', { bet }),

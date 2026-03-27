@@ -854,3 +854,289 @@ function doUpgrade(chance, emoji, name, stars) {
     updateBalance();
   }, 300);
 }
+
+// ===== CRASH GAME =====
+let crashActive = false;
+let crashInterval = null;
+let crashMyBet = 100;
+let crashRoundId = -1;
+let crashInRound = false;
+
+const CRASH_ART_WAIT = [
+  '      *      ',
+  '     /|\\    ',
+  '    / | \\   ',
+  '   /  |  \\  ',
+  '  |  ___  |  ',
+  '  | |   | |  ',
+  '  | |   | |  ',
+  '  | |___| |  ',
+  '   \\_____/   ',
+  '     | |     ',
+  '    [===]    ',
+].join('\n');
+
+const CRASH_ART_FLY = [
+  '      *      ',
+  '     /|\\    ',
+  '    / | \\   ',
+  '   /  |  \\  ',
+  '  |  ___  |  ',
+  '  | |   | |  ',
+  '  | |___| |  ',
+  '   \\_____/   ',
+  '    /||\\     ',
+  '   //||\\\\  ',
+  '  ///||\\\\\\ ',
+  '    ~~~~~    ',
+].join('\n');
+
+const CRASH_ART_BOOM = [
+  '  * . * . * ',
+  ' . * КРАШ * .',
+  '  * . * . * ',
+  ' . *  !!  * .',
+  '  * . * . * ',
+].join('\n');
+
+function openCrash() {
+  crashActive = true;
+  crashInRound = false;
+  crashRoundId = -1;
+
+  showModal(`
+    <div class="modal-close-bar"><div class="modal-close-handle"></div></div>
+    <div class="crash-header">
+      <div class="crash-title">КРАШ</div>
+      <div class="crash-round-badge" id="crash-round-badge">Раунд #—</div>
+    </div>
+
+    <div class="crash-sky" id="crash-sky">
+      <div class="crash-mult-overlay">
+        <div class="crash-mult-val" id="crash-mult-val">1.00x</div>
+      </div>
+      <div class="crash-rocket-container" id="crash-rocket-container">
+        <pre class="crash-rocket" id="crash-rocket">${CRASH_ART_WAIT}</pre>
+      </div>
+    </div>
+
+    <div class="crash-fuel-wrap">
+      <span class="crash-fuel-label">ТЯГА</span>
+      <div class="crash-fuel-bar">
+        <div class="crash-fuel-fill" id="crash-fuel-fill" style="width:100%"></div>
+      </div>
+      <span class="crash-fuel-pct" id="crash-fuel-pct">100%</span>
+    </div>
+
+    <div class="crash-status-bar" id="crash-status-bar">
+      <div class="crash-countdown">
+        <div class="crash-cd-label">СТАРТ ЧЕРЕЗ</div>
+        <div class="crash-cd-val" id="crash-cd-val">10</div>
+        <div class="crash-cd-track"><div class="crash-cd-fill" id="crash-cd-fill" style="width:100%"></div></div>
+      </div>
+    </div>
+
+    <div class="crash-players-wrap">
+      <div class="crash-players-title">Пассажиры</div>
+      <div class="crash-players-list" id="crash-players-list">
+        <div class="crash-no-players">Пусто — займи место!</div>
+      </div>
+    </div>
+
+    <div class="crash-controls" id="crash-controls">
+      <div class="crash-bet-row">
+        <input class="crash-bet-input" id="crash-bet-input" type="number" min="10"
+          value="${crashMyBet}" oninput="crashMyBet=+this.value">
+        <button class="btn-crash-join" id="btn-crash-join" onclick="doCrashJoin()">
+          Сесть в ракету
+        </button>
+      </div>
+      <div class="crash-quick-bets">
+        ${[50,100,250,500,1000].map(b =>
+          `<button class="crash-qbet" onclick="crashSetBet(${b})">⭐${b}</button>`
+        ).join('')}
+      </div>
+    </div>
+  `);
+
+  crashInterval = setInterval(crashPoll, 300);
+  crashPoll();
+}
+
+function crashSetBet(v) {
+  crashMyBet = v;
+  const inp = document.getElementById('crash-bet-input');
+  if (inp) inp.value = v;
+}
+
+async function doCrashJoin() {
+  const btn = document.getElementById('btn-crash-join');
+  if (btn) { btn.disabled = true; btn.textContent = 'Садимся...'; }
+  const res = await API.crashBet(crashMyBet);
+  if (!res || res.__error) {
+    showToast(res?.detail || 'Ошибка');
+    if (btn) { btn.disabled = false; btn.textContent = 'Сесть в ракету'; }
+    return;
+  }
+  crashInRound = true;
+  if (window.appState) window.appState.balance = res.new_balance;
+  updateBalance();
+  if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+  showToast('Вы на борту!');
+}
+
+async function doCrashCashout() {
+  const btn = document.getElementById('btn-crash-cashout');
+  if (btn) { btn.disabled = true; }
+  const res = await API.crashCashout();
+  if (!res || res.__error) {
+    showToast(res?.detail || 'Слишком поздно!');
+    return;
+  }
+  crashInRound = false;
+  if (window.appState) window.appState.balance = res.new_balance;
+  updateBalance();
+  if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+  showToast(`Вышли на ${res.multiplier}x — ⭐ ${res.won.toLocaleString()}`);
+}
+
+async function crashPoll() {
+  if (!crashActive) return;
+  const state = await API.crashState();
+  if (!state || !crashActive) return;
+
+  const { phase, time_left, multiplier, crash_at, players, round_id } = state;
+
+  if (round_id !== crashRoundId) {
+    crashRoundId = round_id;
+    if (phase === 'waiting') crashInRound = false;
+  }
+
+  _crashRenderRocket(phase, multiplier);
+  _crashRenderMult(phase, multiplier, crash_at);
+  _crashRenderFuel(multiplier);
+  _crashRenderStatus(phase, time_left, crash_at);
+  _crashRenderPlayers(players, phase);
+  _crashRenderControls(phase, multiplier);
+
+  const badge = document.getElementById('crash-round-badge');
+  if (badge) badge.textContent = `Раунд #${round_id + 1}`;
+}
+
+function _crashRenderRocket(phase, multiplier) {
+  const el = document.getElementById('crash-rocket');
+  const wrap = document.getElementById('crash-rocket-container');
+  if (!el || !wrap) return;
+
+  if (phase === 'waiting') {
+    el.textContent = CRASH_ART_WAIT;
+    el.className = 'crash-rocket';
+    wrap.style.transform = 'translateX(-50%) translateY(0px)';
+  } else if (phase === 'flying') {
+    el.textContent = CRASH_ART_FLY;
+    el.className = 'crash-rocket crash-rocket-flying';
+    const lift = Math.min(120, Math.log(multiplier + 1) * 58);
+    wrap.style.transform = `translateX(-50%) translateY(-${lift}px)`;
+  } else {
+    el.textContent = CRASH_ART_BOOM;
+    el.className = 'crash-rocket crash-rocket-crashed';
+    wrap.style.transform = 'translateX(-50%) translateY(-60px)';
+  }
+}
+
+function _crashRenderMult(phase, multiplier, crash_at) {
+  const el = document.getElementById('crash-mult-val');
+  if (!el) return;
+  const val = phase === 'crashed' ? crash_at : multiplier;
+  el.textContent = val.toFixed(2) + 'x';
+  el.className = 'crash-mult-val' +
+    (phase === 'crashed' ? ' c-crashed' : phase === 'flying' ? ' c-flying' : '');
+}
+
+function _crashRenderFuel(multiplier) {
+  const fill = document.getElementById('crash-fuel-fill');
+  const pct = document.getElementById('crash-fuel-pct');
+  if (!fill || !pct) return;
+  const fuel = Math.max(2, Math.round(100 / Math.sqrt(multiplier)));
+  fill.style.width = fuel + '%';
+  fill.style.background = fuel > 60 ? 'var(--green)' : fuel > 30 ? 'var(--orange)' : 'var(--red)';
+  pct.textContent = fuel + '%';
+}
+
+function _crashRenderStatus(phase, time_left, crash_at) {
+  const bar = document.getElementById('crash-status-bar');
+  if (!bar) return;
+
+  if (phase === 'waiting') {
+    const pct = (time_left / 10) * 100;
+    bar.innerHTML = `
+      <div class="crash-countdown">
+        <div class="crash-cd-label">СТАРТ ЧЕРЕЗ</div>
+        <div class="crash-cd-val">${time_left}</div>
+        <div class="crash-cd-track">
+          <div class="crash-cd-fill" style="width:${pct}%"></div>
+        </div>
+      </div>`;
+  } else if (phase === 'flying') {
+    bar.innerHTML = `<div class="crash-status-flying">РАКЕТА В ПОЛЁТЕ</div>`;
+  } else {
+    bar.innerHTML = `<div class="crash-status-crashed">КРАШ НА ${crash_at.toFixed(2)}x</div>`;
+  }
+}
+
+function _crashRenderPlayers(players, phase) {
+  const list = document.getElementById('crash-players-list');
+  if (!list) return;
+  if (!players.length) {
+    list.innerHTML = '<div class="crash-no-players">Пусто — займи место!</div>';
+    return;
+  }
+  list.innerHTML = players.map(p => {
+    let st;
+    if (p.cashed_out) {
+      st = `<span class="crash-p-win">✓ ${p.cashout_mult.toFixed(2)}x</span>`;
+    } else if (phase === 'crashed') {
+      st = `<span class="crash-p-lose">✗</span>`;
+    } else {
+      st = `<span class="crash-p-fly">↑</span>`;
+    }
+    return `<div class="crash-player-item">
+      <span class="crash-p-name">${p.name}</span>
+      <span class="crash-p-bet">⭐ ${p.bet.toLocaleString()}</span>
+      ${st}
+    </div>`;
+  }).join('');
+}
+
+function _crashRenderControls(phase, multiplier) {
+  const ctrl = document.getElementById('crash-controls');
+  if (!ctrl) return;
+
+  if (phase === 'waiting' && !crashInRound) {
+    ctrl.innerHTML = `
+      <div class="crash-bet-row">
+        <input class="crash-bet-input" id="crash-bet-input" type="number" min="10"
+          value="${crashMyBet}" oninput="crashMyBet=+this.value">
+        <button class="btn-crash-join" onclick="doCrashJoin()">Сесть в ракету</button>
+      </div>
+      <div class="crash-quick-bets">
+        ${[50,100,250,500,1000].map(b =>
+          `<button class="crash-qbet" onclick="crashSetBet(${b})">⭐${b}</button>`
+        ).join('')}
+      </div>`;
+  } else if (phase === 'waiting' && crashInRound) {
+    ctrl.innerHTML = `<div class="crash-on-board">Вы на борту! Ждём старта...</div>`;
+  } else if (phase === 'flying' && crashInRound) {
+    const won = Math.round(crashMyBet * multiplier);
+    ctrl.innerHTML = `
+      <button class="btn-crash-cashout" id="btn-crash-cashout" onclick="doCrashCashout()">
+        ВЫВЕСТИ ⭐ ${won.toLocaleString()}
+      </button>
+      <div class="crash-cashout-hint">Текущий множитель: ${multiplier.toFixed(2)}x — жми!</div>`;
+  } else if (phase === 'flying') {
+    ctrl.innerHTML = `<div class="crash-watch-msg">Наблюдаете за полётом...</div>`;
+  } else {
+    ctrl.innerHTML = `<div class="crash-next-round">Следующий раунд через несколько секунд...</div>`;
+    if (crashInRound) crashInRound = false;
+  }
+}
