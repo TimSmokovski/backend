@@ -74,7 +74,8 @@ function renderTop3Item(leader, rank) {
       <div class="top3-avatar">${_avatarHtml(leader, 48)}</div>
       <div class="top3-name">${leader.name}</div>
       ${usernameHtml}
-      ${leader.prize ? `<div style="font-size:20px;margin-top:6px">${leader.prize}</div>` : ''}
+      <div style="font-size:13px;color:#ffd700;margin-top:4px;font-weight:600">${_goldStar(13)} ${stars}</div>
+      ${leader.prize ? `<div style="font-size:20px;margin-top:4px">${leader.prize}</div>` : ''}
     </div>
   `;
 }
@@ -98,7 +99,10 @@ function renderLeaderItem(leader) {
         <div class="leader-name">${leader.name}</div>
         ${usernameHtml}
       </div>
-      <div class="leader-prize">${leader.prize || ''}</div>
+      <div style="display:flex;align-items:center;gap:6px;margin-left:auto">
+        <div style="font-size:13px;color:#ffd700;font-weight:600">${_goldStar(13)} ${stars}</div>
+        <div class="leader-prize">${leader.prize || ''}</div>
+      </div>
     </div>
   `;
 }
