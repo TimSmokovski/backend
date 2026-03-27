@@ -38,14 +38,14 @@ async def list_users(q: str = "", _admin: dict = Depends(require_admin)):
         if q:
             uid = int(q) if q.lstrip("-").isdigit() else -1
             cur = await db.execute(
-                "SELECT id, name, username, balance, banned FROM users "
+                "SELECT id, name, username, balance, banned, COALESCE(demo_balance,0) as demo_balance FROM users "
                 "WHERE username LIKE ? OR name LIKE ? OR id = ? "
                 "ORDER BY balance DESC LIMIT 20",
                 (f"%{q}%", f"%{q}%", uid),
             )
         else:
             cur = await db.execute(
-                "SELECT id, name, username, balance, banned FROM users "
+                "SELECT id, name, username, balance, banned, COALESCE(demo_balance,0) as demo_balance FROM users "
                 "ORDER BY balance DESC LIMIT 50"
             )
         rows = await cur.fetchall()
@@ -58,18 +58,37 @@ async def adjust_balance(user_id: int, body: dict, _admin: dict = Depends(requir
     action = body.get("action", "add")  # "add" | "set"
     async with aiosqlite.connect(DB_PATH) as db:
         if action == "set":
+            # Установка баланса — не меняет demo_balance
             await db.execute("UPDATE users SET balance = ? WHERE id = ?", (max(0, amount), user_id))
         else:
+            # Добавление: если amount > 0 — это демо-звёзды (выдача админом)
             await db.execute(
                 "UPDATE users SET balance = MAX(0, balance + ?) WHERE id = ?",
                 (amount, user_id),
             )
+            if amount > 0:
+                await db.execute(
+                    "UPDATE users SET demo_balance = COALESCE(demo_balance,0) + ? WHERE id = ?",
+                    (amount, user_id),
+                )
+            elif amount < 0:
+                # При изъятии — уменьшаем demo_balance (не ниже 0)
+                await db.execute(
+                    "UPDATE users SET demo_balance = MAX(0, COALESCE(demo_balance,0) + ?) WHERE id = ?",
+                    (amount, user_id),
+                )
         await db.commit()
-        cur = await db.execute("SELECT id, name, username, balance FROM users WHERE id = ?", (user_id,))
+        cur = await db.execute(
+            "SELECT id, name, username, balance, COALESCE(demo_balance,0) FROM users WHERE id = ?",
+            (user_id,),
+        )
         row = await cur.fetchone()
     if not row:
         raise HTTPException(404, "Пользователь не найден")
-    return {"ok": True, "user": {"id": row[0], "name": row[1], "username": row[2], "balance": row[3]}}
+    return {"ok": True, "user": {
+        "id": row[0], "name": row[1], "username": row[2],
+        "balance": row[3], "demo_balance": row[4],
+    }}
 
 
 @router.post("/users/{user_id}/reset_cooldown")

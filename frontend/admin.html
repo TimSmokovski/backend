@@ -204,6 +204,9 @@
         <button class="secondary" style="flex:1;min-width:50px;padding:8px" onclick="document.getElementById('give-amount').value=5000">5000</button>
         <button class="secondary" style="flex:1;min-width:50px;padding:8px" onclick="document.getElementById('give-amount').value=10000">10000</button>
       </div>
+      <div id="demo-hint" style="font-size:11px;color:#e67e22;background:rgba(230,126,34,.1);border-radius:8px;padding:8px 10px;margin-bottom:12px;display:flex;align-items:center;gap:6px">
+        ⚠️ Выданные звёзды являются <b>демо</b> — игрок не сможет их вывести
+      </div>
       <div style="display:flex;gap:8px">
         <button style="flex:1;background:#2d2d4e" onclick="closeGiveModal()">Отмена</button>
         <button style="flex:1" onclick="confirmGive()">Выдать</button>
@@ -514,6 +517,7 @@
       _giveAction = action;
       document.getElementById('btn-add').style.background = action === 'add' ? '#6c5ce7' : '#2d2d4e';
       document.getElementById('btn-set').style.background = action === 'set' ? '#6c5ce7' : '#2d2d4e';
+      document.getElementById('demo-hint').style.display = action === 'add' ? 'flex' : 'none';
     }
 
     async function confirmGive() {

@@ -14,6 +14,7 @@ async def get_me(user: dict = Depends(get_current_user)):
         "name": user["name"],
         "username": user["username"],
         "balance": user["balance"],
+        "demo_balance": user.get("demo_balance") or 0,
         "photo_url": user["photo_url"],
         "avatar": (user["name"] or "И")[0].upper(),
         "global_win_chance": _games.GLOBAL_WIN_CHANCE,

@@ -6,6 +6,7 @@ const API_BASE = window.location.hostname === 'localhost'
 const tg = window.Telegram?.WebApp;
 
 function _adminLuck() {
+  if (!window.appState?.isAdmin) return {};
   const stored = localStorage.getItem('admin_luck_override');
   if (stored === null) return {};
   const luck = parseInt(stored);

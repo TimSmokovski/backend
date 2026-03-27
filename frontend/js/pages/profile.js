@@ -50,6 +50,7 @@ async function renderProfilePage() {
         <div>
           <div style="font-size:16px;font-weight:700">${user.name || 'Игрок'}</div>
           <div style="font-size:13px;color:var(--text2);margin-top:2px;display:flex;align-items:center;gap:4px">${_goldStar(14)} ${(user.balance || 0).toLocaleString()} звёзд</div>
+          ${(user.demo_balance > 0) ? `<div style="font-size:11px;color:#e67e22;margin-top:3px">из них ${user.demo_balance.toLocaleString()} демо — нельзя вывести</div>` : ''}
         </div>
       </div>
     </div>

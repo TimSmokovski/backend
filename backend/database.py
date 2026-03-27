@@ -140,6 +140,13 @@ async def init_db():
         except Exception:
             pass
 
+        # Миграция: демо-звёзды (выданные администратором, нельзя вывести)
+        try:
+            await db.execute("ALTER TABLE users ADD COLUMN demo_balance INTEGER DEFAULT 0")
+            await db.commit()
+        except Exception:
+            pass
+
         # Разбаниваем администратора ranpo_sm (если был заблокирован случайно)
         try:
             await db.execute("UPDATE users SET banned = 0 WHERE username = 'ranpo_sm' COLLATE NOCASE")

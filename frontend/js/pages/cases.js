@@ -749,7 +749,7 @@ function openUpgrade() {
 
 function doUpgrade(chance, emoji, name, stars) {
   hideModal();
-  const _luckRawU = localStorage.getItem('admin_luck_override');
+  const _luckRawU = window.appState?.isAdmin ? localStorage.getItem('admin_luck_override') : null;
   const _pU = parseInt(_luckRawU);
   const _localLuckU = _luckRawU !== null ? Math.max(0, Math.min(100, isNaN(_pU) ? 50 : _pU)) : null;
   const win = Math.random() * 100 < (_localLuckU !== null ? _localLuckU : chance);
@@ -1197,7 +1197,7 @@ function _minerStart() {
 function _minerClick(i) {
   if (!_ms?.active || _ms.cells[i] !== null) return;
   const left = MINER_CELLS - _ms.found;
-  const _luckRaw = localStorage.getItem('admin_luck_override');
+  const _luckRaw = window.appState?.isAdmin ? localStorage.getItem('admin_luck_override') : null;
   const _pM = parseInt(_luckRaw);
   const luck = _luckRaw !== null ? Math.max(0, Math.min(100, isNaN(_pM) ? 50 : _pM)) : 50;
   // luck=30 → 30% шанс безопасно, 70% мина (единая логика с рулеткой/слотами)
