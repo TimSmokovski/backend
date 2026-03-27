@@ -29,7 +29,7 @@ function renderTaskItem(task) {
       <div class="task-icon ${task.icon}">${ICON_MAP[task.icon] || '🔗'}</div>
       <div class="task-info">
         <div class="task-name">${task.name}</div>
-        <div class="task-reward">⭐ ${task.reward} билет</div>
+        <div class="task-reward">${_goldStar(14)} ${task.reward} билет</div>
       </div>
       <button class="task-action ${done ? 'done' : ''}" onclick="doTask(${task.id}, '${task.url || ''}')" ${done ? 'disabled' : ''}>
         ${done ? '✓' : 'Принять'}

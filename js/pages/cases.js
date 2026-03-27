@@ -56,7 +56,7 @@ async function pollLiveBar() {
     liveItems.push(win);
     const el = document.createElement('div');
     el.className = 'live-win-item live-emoji-enter';
-    el.innerHTML = `<span class="live-win-emoji">${win.emoji}</span><span class="live-win-name">${win.name}</span><span class="live-win-stars">⭐${win.stars}</span>`;
+    el.innerHTML = `<span class="live-win-emoji">${win.emoji}</span><span class="live-win-name">${win.name}</span><span class="live-win-stars">${_goldStar(13)}${win.stars}</span>`;
     bar.appendChild(el);
     setTimeout(() => el.classList.remove('live-emoji-enter'), 50);
   });
@@ -79,7 +79,7 @@ function renderLiveBar() {
     <div class="live-win-item">
       <span class="live-win-emoji">${w.emoji}</span>
       <span class="live-win-name">${w.name}</span>
-      <span class="live-win-stars">⭐${w.stars}</span>
+      <span class="live-win-stars">${_goldStar(13)}${w.stars}</span>
     </div>
   `).join('');
 }
@@ -117,7 +117,7 @@ function renderCasesPage() {
           <div class="mode-name">Рулетка</div>
           <div class="mode-desc">Больше ставка — лучше награды</div>
         </div>
-        <div class="mode-badge price-badge">⭐ 1</div>
+        <div class="mode-badge price-badge">${_goldStar(13)} 1</div>
       </div>
       <div class="mode-card crash" onclick="openCrash()">
         <div class="mode-icon-wrap crash-icon">📈</div>
@@ -133,7 +133,7 @@ function renderCasesPage() {
           <div class="mode-name">Слоты</div>
           <div class="mode-desc">Три символа — и ты богач</div>
         </div>
-        <div class="mode-badge price-badge">⭐ 4</div>
+        <div class="mode-badge price-badge">${_goldStar(13)} 4</div>
       </div>
       <div class="mode-card eggs" onclick="openEggs()">
         <div class="mode-icon-wrap eggs-icon">🥚</div>
@@ -141,7 +141,7 @@ function renderCasesPage() {
           <div class="mode-name">Яйца</div>
           <div class="mode-desc">Вскрой яйцо — получи сюрприз</div>
         </div>
-        <div class="mode-badge price-badge">⭐ 4</div>
+        <div class="mode-badge price-badge">${_goldStar(13)} 4</div>
       </div>
       <div class="mode-card upgrade" onclick="openUpgrade()">
         <div class="mode-icon-wrap upgrade-icon">⬆️</div>
@@ -241,7 +241,7 @@ async function pvpRefreshLobby() {
     const res = lobby.auto_resolved;
     hideModal();
     const iWon = res.winner_id == window.appState?.id;
-    showWin(iWon ? '🏆' : '💀', iWon ? 'Ты победил!' : `Победил ${res.winner_name}`, `Котёл: ⭐ ${res.total_pot.toLocaleString()}`);
+    showWin(iWon ? '🏆' : '💀', iWon ? 'Ты победил!' : `Победил ${res.winner_name}`, `Котёл: ${_goldStar(20)} ${res.total_pot.toLocaleString()}`);
     return;
   }
 
@@ -275,7 +275,7 @@ async function pvpRefreshLobby() {
   content.innerHTML = `
     <div class="pvp-cauldron-card">
       <div class="pvp-cauldron-label">🔥 КОТЁЛ</div>
-      <div class="pvp-cauldron-val">⭐ ${lobby.total_pot.toLocaleString()}</div>
+      <div class="pvp-cauldron-val">${_goldStar(22)} ${lobby.total_pot.toLocaleString()}</div>
       <div class="pvp-cauldron-players">${playerCount} / ${lobby.max_players || 10} игроков</div>
     </div>
 
@@ -297,7 +297,7 @@ async function pvpRefreshLobby() {
                   </div>
                 </div>
                 <div class="pvp-player-right">
-                  <div class="pvp-room-bet">⭐ ${p.amount.toLocaleString()}</div>
+                  <div class="pvp-room-bet">${_goldStar(14)} ${p.amount.toLocaleString()}</div>
                   <div class="pvp-chance-label" style="color:${color}">${p.chance}%</div>
                 </div>
               </div>`;
@@ -345,7 +345,7 @@ async function doPvpBetCheck(res) {
     const r = res.auto_resolved;
     hideModal();
     const iWon = r.winner_id == window.appState?.id;
-    showWin(iWon ? '🏆' : '💀', iWon ? 'Ты победил!' : `Победил ${r.winner_name}`, `Котёл: ⭐ ${r.total_pot.toLocaleString()}`);
+    showWin(iWon ? '🏆' : '💀', iWon ? 'Ты победил!' : `Победил ${r.winner_name}`, `Котёл: ${_goldStar(20)} ${r.total_pot.toLocaleString()}`);
     return;
   }
   if (window.appState) window.appState.balance = res.new_balance;
@@ -381,7 +381,10 @@ function openFreeCase() {
         ${spinItems.map(item => `
           <div class="spin-item ${item.rarity === 'epic' ? 'epic' : item.rarity === 'rare' ? 'rare' : ''}"
             ${item.color ? `style="border-color:${item.color}55;background:${item.color}12"` : ''}>
-            <span class="spin-item-label" ${item.color ? `style="color:${item.color};font-size:22px;font-weight:900"` : ''}>${item.label}</span>
+            ${item.stars > 0
+              ? `${_rouletteStar(28, item.rarity === 'epic' ? '#e91e8c' : item.rarity === 'rare' ? '#3498db' : '#ffd700')}<span class="spin-item-label">${item.stars}</span>`
+              : `<span class="spin-item-label" style="color:${item.color||'var(--gold)'};font-size:26px;font-weight:900">${item.label}</span>`
+            }
           </div>
         `).join('')}
       </div>
@@ -419,7 +422,7 @@ async function doFreeSpin() {
     const item = res.item || winItem;
     const localItem = FREE_ITEMS.find(i => i.stars === (res.item?.stars ?? -1)) || winItem;
     document.getElementById('spin-result').innerHTML = `
-      <div class="spin-result-item" ${localItem.color ? `style="color:${localItem.color}"` : ''}>${localItem.label}</div>
+      <div class="spin-result-item" ${localItem.color ? `style="color:${localItem.color}"` : ''}>${localItem.stars > 0 ? `${_goldStar(28)} ${localItem.stars}` : localItem.label}</div>
       <div class="spin-result-val">${localItem.stars > 0 ? `+${localItem.stars} звёзд` : '<span style="color:#e74c3c">Не повезло</span>'}</div>
     `;
     document.getElementById('spin-result').style.display = 'block';
@@ -476,14 +479,14 @@ function _rouletteStar(size, color) {
 
 function _goldStar(size = 18) { return _rouletteStar(size, '#ffd700'); }
 
-// Визуально только 2 проигрыша в ленте; реальная вероятность задаётся lossChance
+// Визуально только 3 проигрыша в ленте; реальная вероятность задаётся lossChance
 function getRouletteItems() {
   const winItems = ROULETTE_ITEMS.map(item => ({
     ...item,
     stars: Math.round(rouletteBet * item.mult),
   }));
   const total = 22;
-  const lossAt = new Set([4, 16]);
+  const lossAt = new Set([3, 11, 18]);
   const strip = [];
   let wi = 0;
   for (let i = 0; i < total; i++) {
@@ -604,7 +607,7 @@ function spinRoulette() {
 
   // Приземляемся на средней (второй) копии ленты
   const targetOffset = (n + winIdx) * itemW - (track.parentElement.offsetWidth / 2) + (itemW / 2);
-  track.style.transition = 'transform 4.5s cubic-bezier(0.12, 0.8, 0.3, 1)';
+  track.style.transition = 'transform 6s cubic-bezier(0.08, 0.82, 0.25, 1)';
   track.style.transform = `translateX(-${targetOffset}px)`;
 
   setTimeout(() => {
@@ -637,7 +640,7 @@ function spinRoulette() {
         track.classList.add('roulette-idle');
       }
     }, 1200);
-  }, 4600);
+  }, 6100);
 }
 
 // ===== CRASH ===== (see full implementation at bottom of file)
@@ -660,10 +663,10 @@ function openSlots() {
     <div class="slots-bet-row">
       <span class="slots-bet-label">Ставка:</span>
       <div class="slots-bets">
-        ${[25,50,100,250].map(b => `<div class="slots-bet-opt ${b===slotsBet?'selected':''}" onclick="setSlotsBet(${b})">⭐${b}</div>`).join('')}
+        ${[25,50,100,250].map(b => `<div class="slots-bet-opt ${b===slotsBet?'selected':''}" onclick="setSlotsBet(${b})">${_goldStar(14)}${b}</div>`).join('')}
       </div>
     </div>
-    <button class="btn-slots-spin" id="btn-slots" onclick="doSlotsSpin()">🎰 Крутить · ⭐ ${slotsBet}</button>
+    <button class="btn-slots-spin" id="btn-slots" onclick="doSlotsSpin()">🎰 Крутить · ${_goldStar(16)} ${slotsBet}</button>
   `);
 }
 
@@ -725,11 +728,11 @@ function openEggs() {
         <div class="egg-item ${i === selectedEgg ? 'selected' : ''}" onclick="selectEgg(${i})">
           <div class="egg-emoji">${e.emoji}</div>
           <div class="egg-name">${e.name}</div>
-          <div class="egg-price">⭐ ${e.price}</div>
+          <div class="egg-price">${_goldStar(14)} ${e.price}</div>
         </div>
       `).join('')}
     </div>
-    <button class="btn-open-egg" onclick="doOpenEgg()">🥚 Открыть · ⭐ ${EGGS[selectedEgg].price}</button>
+    <button class="btn-open-egg" onclick="doOpenEgg()">🥚 Открыть · ${_goldStar(16)} ${EGGS[selectedEgg].price}</button>
   `);
 }
 
@@ -760,7 +763,7 @@ function openUpgrade() {
       <div style="text-align:center">
         <div class="upgrade-card-box">
           <span>${fromItem.emoji}</span>
-          <span class="upgrade-card-val">⭐ ${fromItem.stars}</span>
+          <span class="upgrade-card-val">${_goldStar(14)} ${fromItem.stars}</span>
         </div>
         <div class="upgrade-card-label" style="margin-top:6px">Твой предмет</div>
       </div>
@@ -768,7 +771,7 @@ function openUpgrade() {
       <div style="text-align:center">
         <div class="upgrade-card-box target">
           <span>${toItem.emoji}</span>
-          <span class="upgrade-card-val">⭐ ${toItem.stars}</span>
+          <span class="upgrade-card-val">${_goldStar(14)} ${toItem.stars}</span>
         </div>
         <div class="upgrade-card-label" style="margin-top:6px">💰 Профит</div>
       </div>
@@ -956,7 +959,7 @@ function openCrash() {
       </div>
       <div class="crash-quick-bets">
         ${[50,100,250,500,1000].map(b =>
-          `<button class="crash-qbet" onclick="crashSetBet(${b})">⭐${b}</button>`
+          `<button class="crash-qbet" onclick="crashSetBet(${b})">${_goldStar(14)}${b}</button>`
         ).join('')}
       </div>
     </div>
@@ -1106,7 +1109,7 @@ function _crashRenderPlayers(players, phase) {
     }
     return `<div class="crash-player-item">
       <span class="crash-p-name">${p.name}</span>
-      <span class="crash-p-bet">⭐ ${p.bet.toLocaleString()}</span>
+      <span class="crash-p-bet">${_goldStar(13)} ${p.bet.toLocaleString()}</span>
       ${st}
     </div>`;
   }).join('');
@@ -1125,7 +1128,7 @@ function _crashRenderControls(phase, multiplier) {
       </div>
       <div class="crash-quick-bets">
         ${[50,100,250,500,1000].map(b =>
-          `<button class="crash-qbet" onclick="crashSetBet(${b})">⭐${b}</button>`
+          `<button class="crash-qbet" onclick="crashSetBet(${b})">${_goldStar(14)}${b}</button>`
         ).join('')}
       </div>`;
   } else if (phase === 'waiting' && crashInRound) {
@@ -1134,7 +1137,7 @@ function _crashRenderControls(phase, multiplier) {
     const won = Math.round(crashMyBet * multiplier);
     ctrl.innerHTML = `
       <button class="btn-crash-cashout" id="btn-crash-cashout" onclick="doCrashCashout()">
-        ВЫВЕСТИ ⭐ ${won.toLocaleString()}
+        ВЫВЕСТИ ${_goldStar(18)} ${won.toLocaleString()}
       </button>
       <div class="crash-cashout-hint">Текущий множитель: ${multiplier.toFixed(2)}x — жми!</div>`;
   } else if (phase === 'flying') {

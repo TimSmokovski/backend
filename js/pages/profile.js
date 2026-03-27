@@ -7,14 +7,14 @@ function renderProfilePage() {
   page.innerHTML = `
     <div class="profile-ref-card">
       <h2>Приглашай друзей и получай<br>10% от их пополнений!</h2>
-      <p>А ты знал что у тебя есть как минимум 1 человек, кто даст не более 30⭐ в день.</p>
+      <p>А ты знал что у тебя есть как минимум 1 человек, кто даст не более 30${_goldStar(14)} в день.</p>
       <div class="ref-stats">
         <div class="ref-stat">
           <div class="ref-stat-val">${ref.friends}</div>
           <div class="ref-stat-label">Друзей</div>
         </div>
         <div class="ref-stat">
-          <div class="ref-stat-val">⭐ ${ref.earned}</div>
+          <div class="ref-stat-val">${_goldStar(18)} ${ref.earned}</div>
           <div class="ref-stat-label">Заработано</div>
         </div>
       </div>
@@ -37,7 +37,7 @@ function renderProfilePage() {
         <div class="topbar-avatar" style="width:52px;height:52px;font-size:20px">${user.avatar || user.name?.[0] || '?'}</div>
         <div>
           <div style="font-size:16px;font-weight:700">${user.name || 'Игрок'}</div>
-          <div style="font-size:13px;color:var(--text2);margin-top:2px">⭐ ${(user.balance || 0).toLocaleString()} звёзд</div>
+          <div style="font-size:13px;color:var(--text2);margin-top:2px;display:flex;align-items:center;gap:4px">${_goldStar(14)} ${(user.balance || 0).toLocaleString()} звёзд</div>
         </div>
       </div>
     </div>

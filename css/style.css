@@ -60,7 +60,7 @@ html, body { height: 100%; overflow: hidden; font-family: 'Inter', sans-serif; b
   background: var(--bg3); border-radius: 20px; padding: 6px 14px;
   font-weight: 700; font-size: 16px;
 }
-.star-icon { font-size: 18px; }
+.star-icon { display: inline-block; vertical-align: middle; }
 .topbar-user { display: flex; align-items: center; gap: 10px; }
 #user-name { font-size: 14px; font-weight: 600; color: var(--text2); }
 .topbar-avatar {
