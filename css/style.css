@@ -67,7 +67,7 @@ html, body { height: 100%; overflow: hidden; font-family: 'Inter', sans-serif; b
   width: 36px; height: 36px; border-radius: 50%;
   background: linear-gradient(135deg, var(--accent), #c471ed);
   display: flex; align-items: center; justify-content: center;
-  font-weight: 700; font-size: 14px;
+  font-weight: 700; font-size: 14px; overflow: hidden;
 }
 
 /* ===== PAGES ===== */
@@ -270,7 +270,7 @@ html, body { height: 100%; overflow: hidden; font-family: 'Inter', sans-serif; b
   width: 48px; height: 48px; border-radius: 50%; margin: 0 auto 8px;
   background: linear-gradient(135deg, var(--accent), #c471ed);
   display: flex; align-items: center; justify-content: center;
-  font-size: 26px;
+  font-size: 26px; overflow: hidden;
 }
 .top3-name { font-size: 11px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .top3-stars { font-size: 11px; color: var(--gold); margin-top: 4px; display: flex; align-items: center; justify-content: center; gap: 2px; }
@@ -286,7 +286,7 @@ html, body { height: 100%; overflow: hidden; font-family: 'Inter', sans-serif; b
   width: 38px; height: 38px; border-radius: 50%;
   background: linear-gradient(135deg, var(--accent), #c471ed);
   display: flex; align-items: center; justify-content: center;
-  font-size: 22px; flex-shrink: 0;
+  font-size: 22px; flex-shrink: 0; overflow: hidden;
 }
 .leader-info { flex: 1; }
 .leader-name { font-size: 14px; font-weight: 600; }
