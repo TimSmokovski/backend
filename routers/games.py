@@ -1,4 +1,6 @@
 import random
+import math
+import asyncio
 from fastapi import APIRouter, Depends, HTTPException
 import aiosqlite
 from database import DB_PATH
@@ -73,6 +75,128 @@ async def open_egg(body: dict, user: dict = Depends(get_current_user)):
     item = random.choice(EGG_PRIZES.get(egg_type, EGG_PRIZES["common"]))
     new_balance = await deduct_and_add(user["id"], cost, item["stars"])
     return {"item": item, "new_balance": new_balance}
+
+
+# ===== CRASH GAME =====
+
+_crash = {
+    "phase": "waiting",   # waiting | flying | crashed
+    "time_left": 10,
+    "multiplier": 1.0,
+    "crash_point": 2.0,
+    "players": {},        # str(uid) -> {name, bet, cashed_out, cashout_mult}
+    "round_id": 0,
+}
+
+
+def _gen_crash():
+    """Biased toward early crashes: 20% instant, rest exponential 1–10x."""
+    if random.random() < 0.20:
+        return 1.0
+    u = random.uniform(0.0, 0.90)
+    return round(max(1.01, 1.0 / (1.0 - u)), 2)
+
+
+async def crash_loop():
+    while True:
+        _crash.update({
+            "phase": "waiting",
+            "multiplier": 1.0,
+            "crash_point": _gen_crash(),
+            "time_left": 10,
+            "players": {},
+        })
+        for i in range(10, 0, -1):
+            _crash["time_left"] = i
+            await asyncio.sleep(1)
+
+        if not _crash["players"]:
+            await asyncio.sleep(0.5)
+            continue
+
+        _crash["phase"] = "flying"
+        _crash["time_left"] = 0
+        loop = asyncio.get_event_loop()
+        t0 = loop.time()
+
+        while True:
+            elapsed = loop.time() - t0
+            mult = round(math.exp(0.10 * elapsed), 2)
+            _crash["multiplier"] = mult
+            if mult >= _crash["crash_point"]:
+                _crash["multiplier"] = _crash["crash_point"]
+                break
+            await asyncio.sleep(0.07)
+
+        _crash["phase"] = "crashed"
+        _crash["round_id"] += 1
+        await asyncio.sleep(4)
+
+
+@router.get("/crash/state")
+async def crash_get_state():
+    return {
+        "phase": _crash["phase"],
+        "time_left": _crash["time_left"],
+        "multiplier": _crash["multiplier"],
+        "crash_at": _crash["crash_point"] if _crash["phase"] == "crashed" else None,
+        "players": [
+            {
+                "name": v["name"],
+                "bet": v["bet"],
+                "cashed_out": v["cashed_out"],
+                "cashout_mult": v["cashout_mult"],
+            }
+            for v in _crash["players"].values()
+        ],
+        "round_id": _crash["round_id"],
+    }
+
+
+@router.post("/crash/bet")
+async def crash_bet(body: dict, user: dict = Depends(get_current_user)):
+    if _crash["phase"] != "waiting":
+        raise HTTPException(400, "Набор закрыт — ждите следующего раунда")
+    uid = str(user["id"])
+    if uid in _crash["players"]:
+        raise HTTPException(400, "Вы уже в этом раунде")
+    bet = max(10, int(body.get("amount", 100)))
+    if user["balance"] < bet:
+        raise HTTPException(400, "Недостаточно звёзд")
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("UPDATE users SET balance = balance - ? WHERE id = ?", (bet, user["id"]))
+        await db.commit()
+        cur = await db.execute("SELECT balance FROM users WHERE id = ?", (user["id"],))
+        row = await cur.fetchone()
+    _crash["players"][uid] = {
+        "name": user.get("name", "Игрок"),
+        "bet": bet,
+        "cashed_out": False,
+        "cashout_mult": None,
+    }
+    return {"ok": True, "bet": bet, "new_balance": row[0]}
+
+
+@router.post("/crash/cashout")
+async def crash_cashout(user: dict = Depends(get_current_user)):
+    if _crash["phase"] != "flying":
+        raise HTTPException(400, "Ракета не летит")
+    uid = str(user["id"])
+    p = _crash["players"].get(uid)
+    if not p:
+        raise HTTPException(400, "Вы не участвуете в этом раунде")
+    if p["cashed_out"]:
+        raise HTTPException(400, "Вы уже вышли")
+    mult = _crash["multiplier"]
+    won = int(p["bet"] * mult)
+    p["cashed_out"] = True
+    p["cashout_mult"] = mult
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("UPDATE users SET balance = balance + ? WHERE id = ?", (won, user["id"]))
+        await db.commit()
+        cur = await db.execute("SELECT balance FROM users WHERE id = ?", (user["id"],))
+        row = await cur.fetchone()
+    return {"ok": True, "won": won, "multiplier": mult, "new_balance": row[0]}
 
 
 @router.post("/upgrade")

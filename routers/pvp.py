@@ -7,7 +7,7 @@ from auth import get_current_user
 
 router = APIRouter(prefix="/pvp", tags=["pvp"])
 
-ROUND_DURATION = 180  # 3 минуты
+ROUND_DURATION = 60  # 1 минута
 MAX_PLAYERS = 10
 
 

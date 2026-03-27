@@ -1,14 +1,22 @@
+import asyncio
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from database import init_db
 from routers import users, cases, pvp, games, social
+from routers.games import crash_loop
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_db()
+    task = asyncio.create_task(crash_loop())
     yield
+    task.cancel()
+    try:
+        await task
+    except asyncio.CancelledError:
+        pass
 
 
 app = FastAPI(title="CaseArena API", version="1.0.0", lifespan=lifespan)

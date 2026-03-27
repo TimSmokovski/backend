@@ -22,16 +22,17 @@ ITEMS = [
     {"emoji": "🐉", "name": "Дракон",   "stars": 9999, "rarity": "legendary", "weight": 0.05},
 ]
 FREE_ITEMS = [
-    {"emoji": "⭐", "name": "Звезда",   "stars": 5,   "rarity": "common",   "weight": 30},
-    {"emoji": "🌊", "name": "Волна",    "stars": 10,  "rarity": "common",   "weight": 25},
-    {"emoji": "🍀", "name": "Клевер",   "stars": 15,  "rarity": "common",   "weight": 20},
-    {"emoji": "🎈", "name": "Шарик",    "stars": 20,  "rarity": "common",   "weight": 15},
-    {"emoji": "🦊", "name": "Лиса",     "stars": 30,  "rarity": "uncommon", "weight": 10},
-    {"emoji": "⚡", "name": "Молния",   "stars": 40,  "rarity": "uncommon", "weight": 8},
-    {"emoji": "🎃", "name": "Тыква",    "stars": 50,  "rarity": "uncommon", "weight": 6},
-    {"emoji": "🧪", "name": "Зелье",    "stars": 75,  "rarity": "rare",     "weight": 3},
-    {"emoji": "👾", "name": "Пришелец", "stars": 90,  "rarity": "rare",     "weight": 2},
-    {"emoji": "🎒", "name": "Рюкзак",   "stars": 100, "rarity": "epic",     "weight": 1},
+    {"stars": 0,   "label": "Ничего", "rarity": "common",   "weight": 200},
+    {"stars": 5,   "label": "⭐ 5",   "rarity": "common",   "weight": 300},
+    {"stars": 10,  "label": "⭐ 10",  "rarity": "common",   "weight": 200},
+    {"stars": 15,  "label": "⭐ 15",  "rarity": "common",   "weight": 100},
+    {"stars": 20,  "label": "⭐ 20",  "rarity": "common",   "weight": 80},
+    {"stars": 30,  "label": "⭐ 30",  "rarity": "uncommon", "weight": 50},
+    {"stars": 40,  "label": "⭐ 40",  "rarity": "uncommon", "weight": 30},
+    {"stars": 50,  "label": "⭐ 50",  "rarity": "uncommon", "weight": 20},
+    {"stars": 75,  "label": "⭐ 75",  "rarity": "rare",     "weight": 10},
+    {"stars": 90,  "label": "⭐ 90",  "rarity": "rare",     "weight": 5},
+    {"stars": 100, "label": "⭐ 100", "rarity": "epic",     "weight": 5},
 ]
 
 
@@ -69,9 +70,11 @@ async def open_case(body: dict, user: dict = Depends(get_current_user)):
             )
         # Сохраняем в историю если 100+ звёзд
         if item["stars"] >= 100:
+            emoji = item.get("emoji", "⭐")
+            name = item.get("name", item.get("label", f"⭐ {item['stars']}"))
             await db.execute(
                 "INSERT INTO case_wins (user_id, emoji, name, stars) VALUES (?, ?, ?, ?)",
-                (user["id"], item["emoji"], item["name"], item["stars"])
+                (user["id"], emoji, name, item["stars"])
             )
         await db.commit()
         cur = await db.execute("SELECT balance FROM users WHERE id = ?", (user["id"],))
