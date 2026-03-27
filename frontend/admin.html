@@ -165,18 +165,28 @@
     async function init() {
       if (tg) { tg.ready(); tg.expand(); tg.setHeaderColor('#0e0e1a'); tg.setBackgroundColor('#0e0e1a'); }
 
-      const check = await api('GET', '/admin/check');
-      document.getElementById('loader-screen').style.display = 'none';
+      try {
+        const check = await Promise.race([
+          api('GET', '/admin/check'),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 8000))
+        ]);
+        document.getElementById('loader-screen').style.display = 'none';
 
-      if (!check || check.__error) {
+        if (!check || check.__error) {
+          document.getElementById('access-denied').style.display = 'block';
+          return;
+        }
+
+        document.getElementById('admin-subtitle').textContent = `Вы вошли как @${check.user}`;
+        document.getElementById('admin-panel').style.display = 'block';
+        loadUsers();
+        loadRouletteSettings();
+      } catch(e) {
+        document.getElementById('loader-screen').style.display = 'none';
         document.getElementById('access-denied').style.display = 'block';
-        return;
+        document.getElementById('access-denied').querySelector('p').textContent =
+          e.message === 'timeout' ? 'Сервер не отвечает — попробуй позже' : 'Ошибка соединения';
       }
-
-      document.getElementById('admin-subtitle').textContent = `Вы вошли как @${check.user}`;
-      document.getElementById('admin-panel').style.display = 'block';
-      loadUsers();
-      loadRouletteSettings();
     }
 
     function renderUser(u) {
