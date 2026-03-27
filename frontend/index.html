@@ -23,7 +23,17 @@
       <!-- Top bar -->
       <div class="topbar">
         <div class="topbar-balance">
-          <span class="star-icon">⭐</span>
+          <svg class="star-icon" viewBox="0 0 24 24" width="20" height="20" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 0 6px #ffd700cc);flex-shrink:0">
+            <defs>
+              <radialGradient id="tbs" cx="38%" cy="28%">
+                <stop offset="0%" stop-color="#fffde7"/>
+                <stop offset="45%" stop-color="#ffd700"/>
+                <stop offset="100%" stop-color="#f59e0b88"/>
+              </radialGradient>
+            </defs>
+            <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" fill="url(#tbs)" stroke="#f59e0b" stroke-width="0.5"/>
+            <polygon points="12,4.5 14,8.8 18.7,9.5 15.3,12.8 16.1,17.5 12,15.3 7.9,17.5 8.7,12.8 5.3,9.5 10,8.8" fill="rgba(255,255,255,0.22)"/>
+          </svg>
           <span id="user-balance">0</span>
         </div>
         <div class="topbar-user">

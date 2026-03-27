@@ -23,7 +23,7 @@ function renderContestCard(c) {
         ${c.prizes.map((p, i) => `
           <div class="contest-prize-item" style="${i === 0 ? 'transform:scale(1.05)' : ''}">
             <span style="font-size:${i === 0 ? '40px' : '32px'}">${p.emoji}</span>
-            <div class="prize-val">⭐ ${p.stars.toLocaleString()}</div>
+            <div class="prize-val">${_goldStar(15)} ${p.stars.toLocaleString()}</div>
           </div>
         `).join('')}
       </div>
