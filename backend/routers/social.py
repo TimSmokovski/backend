@@ -89,9 +89,9 @@ async def get_referral(user: dict = Depends(get_current_user)):
 async def leaderboard():
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
-        cur = await db.execute("SELECT * FROM users ORDER BY balance DESC LIMIT 50")
+        cur = await db.execute("SELECT * FROM users ORDER BY balance DESC LIMIT 10")
         users = await cur.fetchall()
-    prizes = ["🎒", "🏆", "🌟"] + [""] * 47
+    prizes = ["💎", "🏆", "🥇", "🚀", "💰", "💍", "🪙", "💵", "🎯", "🎁"]
     return [
         {"rank": i+1, "name": u["name"] or "Игрок", "stars": u["balance"],
          "photo_url": u["photo_url"], "avatar": (u["name"] or "И")[0].upper(),
