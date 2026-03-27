@@ -40,7 +40,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text(
         f"👋 Привет, {user.first_name}!\n\n"
-        "🎰 *CaseArena* — открывай кейсы, бейся в PvP и выигрывай звёзды!\n\n"
+        "🎰 *DC_GalaxySpinBot* — открывай кейсы, бейся в PvP и выигрывай звёзды!\n\n"
         "⭐ Каждый новый игрок получает *1000 звёзд* на старт.\n"
         "🆓 Бесплатный кейс доступен каждые 24 часа.\n"
         "👥 Приглашай друзей — получай *10%* от их пополнений!",

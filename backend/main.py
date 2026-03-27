@@ -19,7 +19,7 @@ async def lifespan(app: FastAPI):
         pass
 
 
-app = FastAPI(title="CaseArena API", version="1.0.0", lifespan=lifespan)
+app = FastAPI(title="DC_GalaxySpinBot API", version="1.0.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -38,4 +38,4 @@ app.include_router(admin.router)
 
 @app.get("/")
 async def root():
-    return {"status": "ok", "app": "CaseArena"}
+    return {"status": "ok", "app": "DC_GalaxySpinBot"}
