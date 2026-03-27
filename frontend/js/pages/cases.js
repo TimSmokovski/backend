@@ -434,71 +434,77 @@ async function doFreeSpin() {
 }
 
 // ===== ROULETTE =====
+
+// --- ADMIN CONFIG ---
+// Шанс проигрыша (0.0 – 1.0). Для админ-панели просто меняй это значение:
+//   ROULETTE_CONFIG.lossChance = 0.5  →  50% проигрышей
+//   ROULETTE_CONFIG.lossChance = 0.9  →  90% проигрышей
+const ROULETTE_CONFIG = {
+  lossChance: 0.70,
+};
+// --------------------
+
+// Только победные секторы — потери генерируются автоматически через ROULETTE_CONFIG
+// weight — относительный шанс выпасть среди выигрышных секторов (для админки меняй weight)
 const ROULETTE_TIERS = {
   50: [
-    { emoji: '💀', name: 'Проигрыш', stars: 0,   color: '#e74c3c' },
-    { emoji: '⭐', name: '×1.2',     stars: 60,  color: '#3498db' },
-    { emoji: '💀', name: 'Проигрыш', stars: 0,   color: '#e74c3c' },
-    { emoji: '🎈', name: '×1.5',     stars: 75,  color: '#9b59b6' },
-    { emoji: '💀', name: 'Проигрыш', stars: 0,   color: '#e74c3c' },
-    { emoji: '🍀', name: '×2',       stars: 100, color: '#2ecc71' },
-    { emoji: '💀', name: 'Проигрыш', stars: 0,   color: '#e74c3c' },
-    { emoji: '⭐', name: '×1.2',     stars: 60,  color: '#3498db' },
-    { emoji: '🎁', name: '×3',       stars: 150, color: '#f1c40f' },
-    { emoji: '💀', name: 'Проигрыш', stars: 0,   color: '#e74c3c' },
-    { emoji: '🎈', name: '×1.5',     stars: 75,  color: '#9b59b6' },
-    { emoji: '💎', name: '×5',       stars: 250, color: '#e91e8c' },
+    { emoji: '🌱', name: '×1.1', mult: 1.1, color: '#27ae60', weight: 40 },
+    { emoji: '🍃', name: '×1.2', mult: 1.2, color: '#2ecc71', weight: 30 },
+    { emoji: '🌟', name: '×1.5', mult: 1.5, color: '#3498db', weight: 15 },
+    { emoji: '💰', name: '×2',   mult: 2,   color: '#9b59b6', weight: 8  },
+    { emoji: '🏆', name: '×3',   mult: 3,   color: '#f1c40f', weight: 3  },
   ],
   100: [
-    { emoji: '💀', name: 'Проигрыш', stars: 0,   color: '#e74c3c' },
-    { emoji: '🎯', name: '×1.5',     stars: 150, color: '#3498db' },
-    { emoji: '💀', name: 'Проигрыш', stars: 0,   color: '#e74c3c' },
-    { emoji: '🌿', name: '×2',       stars: 200, color: '#2ecc71' },
-    { emoji: '💀', name: 'Проигрыш', stars: 0,   color: '#e74c3c' },
-    { emoji: '🎁', name: '×2',       stars: 200, color: '#9b59b6' },
-    { emoji: '🎃', name: '×3',       stars: 300, color: '#e67e22' },
-    { emoji: '💀', name: 'Проигрыш', stars: 0,   color: '#e74c3c' },
-    { emoji: '🌟', name: '×5',       stars: 500, color: '#f1c40f' },
-    { emoji: '💀', name: 'Проигрыш', stars: 0,   color: '#e74c3c' },
-    { emoji: '🎯', name: '×1.5',     stars: 150, color: '#3498db' },
-    { emoji: '🚀', name: '×10',      stars: 1000,color: '#e91e8c' },
+    { emoji: '🌱', name: '×1.1', mult: 1.1, color: '#27ae60', weight: 35 },
+    { emoji: '🍃', name: '×1.2', mult: 1.2, color: '#2ecc71', weight: 25 },
+    { emoji: '🌟', name: '×1.5', mult: 1.5, color: '#3498db', weight: 15 },
+    { emoji: '💰', name: '×2',   mult: 2,   color: '#9b59b6', weight: 8  },
+    { emoji: '🏆', name: '×3',   mult: 3,   color: '#f1c40f', weight: 3  },
+    { emoji: '💎', name: '×5',   mult: 5,   color: '#e91e8c', weight: 0.5},
   ],
   250: [
-    { emoji: '💀', name: 'Проигрыш', stars: 0,    color: '#e74c3c' },
-    { emoji: '🧪', name: '×2',       stars: 500,  color: '#9b59b6' },
-    { emoji: '💀', name: 'Проигрыш', stars: 0,    color: '#e74c3c' },
-    { emoji: '👾', name: '×2',       stars: 500,  color: '#3498db' },
-    { emoji: '🐻', name: '×3',       stars: 750,  color: '#2ecc71' },
-    { emoji: '💀', name: 'Проигрыш', stars: 0,    color: '#e74c3c' },
-    { emoji: '🧞', name: '×5',       stars: 1250, color: '#f1c40f' },
-    { emoji: '💀', name: 'Проигрыш', stars: 0,    color: '#e74c3c' },
-    { emoji: '🧪', name: '×2',       stars: 500,  color: '#9b59b6' },
-    { emoji: '💎', name: '×7',       stars: 1750, color: '#e91e8c' },
-    { emoji: '💀', name: 'Проигрыш', stars: 0,    color: '#e74c3c' },
-    { emoji: '🐉', name: '×10',      stars: 2500, color: '#f39c12' },
+    { emoji: '🌱', name: '×1.1', mult: 1.1, color: '#27ae60', weight: 30 },
+    { emoji: '🍃', name: '×1.2', mult: 1.2, color: '#2ecc71', weight: 22 },
+    { emoji: '🌟', name: '×1.5', mult: 1.5, color: '#3498db', weight: 14 },
+    { emoji: '💰', name: '×2',   mult: 2,   color: '#9b59b6', weight: 7  },
+    { emoji: '🏆', name: '×3',   mult: 3,   color: '#f1c40f', weight: 2  },
+    { emoji: '💎', name: '×5',   mult: 5,   color: '#e91e8c', weight: 0.5},
+    { emoji: '🔮', name: '×7',   mult: 7,   color: '#8e44ad', weight: 0.1},
   ],
   500: [
-    { emoji: '💀', name: 'Проигрыш', stars: 0,    color: '#e74c3c' },
-    { emoji: '🐻', name: '×2',       stars: 1000, color: '#2ecc71' },
-    { emoji: '💀', name: 'Проигрыш', stars: 0,    color: '#e74c3c' },
-    { emoji: '🧞', name: '×3',       stars: 1500, color: '#9b59b6' },
-    { emoji: '💀', name: 'Проигрыш', stars: 0,    color: '#e74c3c' },
-    { emoji: '💎', name: '×5',       stars: 2500, color: '#f1c40f' },
-    { emoji: '🐉', name: '×7',       stars: 3500, color: '#f39c12' },
-    { emoji: '💀', name: 'Проигрыш', stars: 0,    color: '#e74c3c' },
-    { emoji: '🧞', name: '×3',       stars: 1500, color: '#9b59b6' },
-    { emoji: '🚀', name: '×10',      stars: 5000, color: '#e91e8c' },
-    { emoji: '💀', name: 'Проигрыш', stars: 0,    color: '#e74c3c' },
-    { emoji: '💎', name: '×5',       stars: 2500, color: '#f1c40f' },
+    { emoji: '🍃', name: '×1.2', mult: 1.2, color: '#2ecc71', weight: 30 },
+    { emoji: '🌟', name: '×1.5', mult: 1.5, color: '#3498db', weight: 22 },
+    { emoji: '💰', name: '×2',   mult: 2,   color: '#9b59b6', weight: 14 },
+    { emoji: '🏆', name: '×3',   mult: 3,   color: '#f1c40f', weight: 5  },
+    { emoji: '💎', name: '×5',   mult: 5,   color: '#e91e8c', weight: 1  },
+    { emoji: '🚀', name: '×10',  mult: 10,  color: '#f39c12', weight: 0.1},
   ],
 };
 
+const LOSS_ITEM = { emoji: '💀', name: 'Проигрыш', mult: 0, color: '#e74c3c', stars: 0 };
+
 let rouletteBet = 100;
 
+// Строит ленту из 20 слотов: ~lossChance долей занимают проигрыши,
+// остаток — победные сектора из тира. Состав ленты отражает lossChance визуально.
 function getRouletteItems() {
   const bets = [50, 100, 250, 500];
   const key = bets.reduce((prev, cur) => rouletteBet >= cur ? cur : prev, 50);
-  return ROULETTE_TIERS[key];
+  const winItems = ROULETTE_TIERS[key].map(item => ({
+    ...item,
+    stars: Math.round(rouletteBet * item.mult),
+  }));
+
+  const total = 20;
+  const winCount = Math.max(1, Math.round(total * (1 - ROULETTE_CONFIG.lossChance)));
+
+  // Заполняем проигрышами, затем равномерно вставляем победные слоты
+  const strip = Array.from({ length: total }, () => ({ ...LOSS_ITEM }));
+  for (let i = 0; i < winCount; i++) {
+    const pos = Math.round(i * total / winCount);
+    strip[pos] = { ...winItems[i % winItems.length] };
+  }
+  return strip;
 }
 
 function openRoulette() {
@@ -523,10 +529,17 @@ function openRoulette() {
     </div>
     <div id="roulette-result" class="roulette-result"></div>
     <div class="roulette-tier-badge">${tierLabel}</div>
-    <div class="pvp-quick-bets" style="margin-bottom:12px">
+    <div class="pvp-quick-bets" style="margin-bottom:8px">
       ${[50,100,250,500].map(b => `
         <button class="pvp-bet-btn ${b===rouletteBet?'selected':''}" onclick="setRouletteBet(${b})">⭐${b}</button>
       `).join('')}
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+      <input type="number" id="roulette-custom-input" placeholder="Своя сумма ⭐" min="10"
+        style="flex:1;padding:8px 12px;border-radius:10px;border:1px solid #444;background:#1a1a2e;color:#fff;font-size:14px"
+        value="${[50,100,250,500].includes(rouletteBet)?'':rouletteBet}"
+        onkeydown="if(event.key==='Enter')applyCustomBet()">
+      <button class="pvp-bet-btn" style="padding:8px 14px" onclick="applyCustomBet()">✓</button>
     </div>
     <button class="btn-pvp-create" id="btn-roulette" style="background:linear-gradient(135deg,#9b59b6,#6c3483)" onclick="spinRoulette()">
       🎡 Крутить · ⭐ ${rouletteBet}
@@ -535,6 +548,14 @@ function openRoulette() {
 }
 
 function setRouletteBet(b) { rouletteBet = b; openRoulette(); }
+
+function applyCustomBet() {
+  const val = parseInt(document.getElementById('roulette-custom-input')?.value);
+  if (!val || val < 10) { showToast('Минимум 10 звёзд'); return; }
+  if (window.appState && val > window.appState.balance) { showToast('Недостаточно звёзд'); return; }
+  rouletteBet = val;
+  openRoulette();
+}
 
 function spinRoulette() {
   const btn = document.getElementById('btn-roulette');
@@ -545,9 +566,30 @@ function spinRoulette() {
   const track = document.getElementById('roulette-track');
   const itemW = 98;
   const n = items.length;
-  const winIdx = Math.floor(Math.random() * n);
+
+  // Исход определяется ROULETTE_CONFIG.lossChance, независимо от состава ленты
+  const isLoss = Math.random() < ROULETTE_CONFIG.lossChance;
+  const candidates = items
+    .map((item, i) => ({ item, i }))
+    .filter(({ item }) => isLoss ? item.mult === 0 : item.mult > 0);
+
+  let winIdx;
+  if (isLoss) {
+    // Проигрыши равновероятны
+    winIdx = candidates[Math.floor(Math.random() * candidates.length)].i;
+  } else {
+    // Победы — взвешенный рандом по полю weight
+    const totalWeight = candidates.reduce((s, { item }) => s + (item.weight ?? 1), 0);
+    let r = Math.random() * totalWeight;
+    winIdx = candidates[candidates.length - 1].i;
+    for (const { item, i } of candidates) {
+      r -= (item.weight ?? 1);
+      if (r <= 0) { winIdx = i; break; }
+    }
+  }
   const winItem = items[winIdx];
 
+  // Приземляемся на средней (второй) копии ленты
   const targetOffset = (n + winIdx) * itemW - (track.parentElement.offsetWidth / 2) + (itemW / 2);
   track.style.transition = 'transform 4s cubic-bezier(0.12, 0.8, 0.3, 1)';
   track.style.transform = `translateX(-${targetOffset}px)`;
