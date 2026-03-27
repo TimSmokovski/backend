@@ -511,19 +511,17 @@ html, body { height: 100%; overflow: hidden; font-family: 'Inter', sans-serif; b
 .btn-again { background: var(--bg3); color: var(--text); }
 
 /* ===== ROULETTE MODAL ===== */
-.roulette-item-label { font-size: 11px; font-weight: 800; margin-top: 2px; }
-.roulette-result { text-align: center; font-size: 16px; font-weight: 700; min-height: 28px; margin-bottom: 8px; }
-.roulette-tier-badge {
-  text-align: center; font-size: 12px; font-weight: 700;
-  color: var(--text2); margin-bottom: 12px;
+.roulette-item-label { font-size: 12px; font-weight: 900; margin-top: 1px; letter-spacing: 0.5px; }
+.roulette-result {
+  text-align: center; font-size: 15px; font-weight: 700;
+  min-height: 28px; margin-bottom: 8px;
+  display: flex; align-items: center; justify-content: center; gap: 6px; flex-wrap: wrap;
 }
-.roulette-section {
-  display: flex; align-items: center; gap: 8px;
-  background: var(--bg3); border-radius: var(--radius-sm); padding: 10px 12px;
+@keyframes roulette-drift {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-2156px); }
 }
-.roulette-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
-.roulette-section-name { font-size: 13px; font-weight: 600; }
-.roulette-section-mult { font-size: 12px; color: var(--gold); }
+.roulette-idle { animation: roulette-drift 16s linear infinite; }
 
 /* ===== CRASH MODAL ===== */
 .crash-graph {
