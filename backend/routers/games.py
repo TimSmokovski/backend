@@ -90,11 +90,15 @@ _crash = {
 
 
 def _gen_crash():
-    """Biased toward early crashes: 20% instant, rest exponential 1–10x."""
-    if random.random() < 0.20:
-        return 1.0
-    u = random.uniform(0.0, 0.90)
-    return round(max(1.01, 1.0 / (1.0 - u)), 2)
+    """Rare 1.01/1.06 crashes, min 1.09, ~70% before 2x, irregular values."""
+    r = random.random()
+    if r < 0.04:
+        return 1.01   # редкий мгновенный краш
+    if r < 0.09:
+        return 1.06   # редкий ранний краш
+    val = 1.09 + random.expovariate(2.8)
+    val += random.uniform(-0.04, 0.04)
+    return max(1.09, round(val, 2))
 
 
 async def crash_loop():
@@ -105,6 +109,7 @@ async def crash_loop():
             "crash_point": _gen_crash(),
             "time_left": 10,
             "players": {},
+            "extended": False,
         })
         for i in range(10, 0, -1):
             _crash["time_left"] = i
@@ -116,13 +121,21 @@ async def crash_loop():
 
         _crash["phase"] = "flying"
         _crash["time_left"] = 0
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         t0 = loop.time()
 
         while True:
             elapsed = loop.time() - t0
             mult = round(math.exp(0.10 * elapsed), 2)
             _crash["multiplier"] = mult
+
+            # If all players cashed out — extend flight 2x to attract new bets
+            if not _crash["extended"] and _crash["players"]:
+                all_out = all(v["cashed_out"] for v in _crash["players"].values())
+                if all_out:
+                    _crash["crash_point"] = round(mult * random.uniform(1.2, 4.0), 2)
+                    _crash["extended"] = True
+
             if mult >= _crash["crash_point"]:
                 _crash["multiplier"] = _crash["crash_point"]
                 break
