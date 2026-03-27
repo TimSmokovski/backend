@@ -25,7 +25,6 @@ function renderProfilePage() {
     </div>
 
     <div style="margin:0 12px 16px;padding:20px;background:var(--card);border-radius:var(--radius);border:1px solid rgba(255,255,255,0.06);text-align:center">
-      <img src="assets/tg_star.png" alt="⭐" style="width:72px;height:72px;object-fit:contain;filter:drop-shadow(0 0 18px #ffd70088);margin-bottom:12px">
       <div style="font-size:15px;font-weight:700;margin-bottom:4px">Вывод звёзд</div>
       <div style="font-size:13px;color:#888;margin-bottom:16px">Накопи звёзды и выведи их в Telegram</div>
       <button onclick="showToast('⏳ Вывод будет доступен совсем скоро!')" style="
