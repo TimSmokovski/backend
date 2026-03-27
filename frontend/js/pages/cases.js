@@ -117,7 +117,6 @@ function renderCasesPage() {
           <div class="mode-name">Рулетка</div>
           <div class="mode-desc">Больше ставка — лучше награды</div>
         </div>
-        <div class="mode-badge price-badge">${_goldStar(13)} 1</div>
       </div>
       <div class="mode-card crash" onclick="openCrash()">
         <div class="mode-icon-wrap crash-icon">📈</div>
@@ -133,26 +132,18 @@ function renderCasesPage() {
           <div class="mode-name">Слоты</div>
           <div class="mode-desc">Три символа — и ты богач</div>
         </div>
-        <div class="mode-badge price-badge">${_goldStar(13)} 4</div>
       </div>
-      <div class="mode-card eggs" onclick="openEggs()">
-        <div class="mode-icon-wrap eggs-icon">🥚</div>
+      <div class="mode-card" style="opacity:0.6;cursor:default">
+        <div class="mode-icon-wrap" style="background:linear-gradient(135deg,#546e7a,#37474f)">💣</div>
         <div class="mode-info">
-          <div class="mode-name">Яйца</div>
-          <div class="mode-desc">Вскрой яйцо — получи сюрприз</div>
+          <div class="mode-name">Сапёр</div>
+          <div class="mode-desc">Найди мины — забери приз</div>
         </div>
-        <div class="mode-badge price-badge">${_goldStar(13)} 4</div>
-      </div>
-      <div class="mode-card upgrade" onclick="openUpgrade()">
-        <div class="mode-icon-wrap upgrade-icon">⬆️</div>
-        <div class="mode-info">
-          <div class="mode-name">Апгрейд</div>
-          <div class="mode-desc">Переводи предметы выше</div>
-        </div>
+        <div class="mode-badge" style="background:rgba(255,255,255,0.08);color:var(--text2)">Скоро</div>
       </div>
     </div>
     <div style="padding: 0 12px 12px;">
-      <button class="btn-all-cases" onclick="showToast('Скоро!')">🎒 Все кейсы</button>
+      <button class="btn-all-cases" style="cursor:default;opacity:0.6" onclick="">🎒 Скоро...</button>
     </div>
   `;
 }
