@@ -90,15 +90,15 @@ _crash = {
 
 
 def _gen_crash():
-    """Rare 1.01/1.06 crashes, min 1.09, ~70% before 2x, irregular values."""
+    """High house edge: ~16% early crashes, ~96% crash before 2x."""
     r = random.random()
-    if r < 0.04:
-        return 1.01   # редкий мгновенный краш
-    if r < 0.09:
-        return 1.06   # редкий ранний краш
-    val = 1.09 + random.expovariate(2.8)
-    val += random.uniform(-0.04, 0.04)
-    return max(1.09, round(val, 2))
+    if r < 0.08:
+        return round(random.uniform(1.01, 1.05), 2)  # мгновенный краш
+    if r < 0.18:
+        return round(random.uniform(1.05, 1.25), 2)  # ранний краш
+    val = 1.10 + random.expovariate(3.5)
+    val += random.uniform(-0.03, 0.03)
+    return max(1.10, round(val, 2))
 
 
 async def crash_loop():
