@@ -224,8 +224,22 @@ async function confirmDeposit() {
     return;
   }
   hideModal();
-  if (res.bot_username && tg?.openTelegramLink) {
-    tg.openTelegramLink(`https://t.me/${res.bot_username}`);
+
+  if (res.invoice_link && tg?.openInvoice) {
+    tg.openInvoice(res.invoice_link, async (status) => {
+      if (status === 'paid') {
+        const me = await API.getMe();
+        if (me && !me.__error) {
+          window.appState.balance = me.balance;
+          updateBalance();
+        }
+        showToast('✅ Оплачено! Баланс пополнен.');
+      } else if (status === 'cancelled') {
+        showToast('❌ Оплата отменена');
+      } else if (status === 'failed') {
+        showToast('❌ Ошибка оплаты');
+      }
+    });
   } else {
     showToast('✅ Инвойс отправлен — проверь Telegram!');
   }
