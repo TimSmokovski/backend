@@ -174,6 +174,48 @@
       </div>
     </div>
 
+    <!-- Настройки Fragment -->
+    <div class="section">
+      <div class="section-title">💸 Настройки вывода (Fragment)</div>
+      <div style="font-size:12px;color:#666;margin-bottom:12px;line-height:1.5">
+        API-ключ и URL берёшь у владельца Fragment-аккаунта бота.<br>
+        Запрос: <code style="background:#0e0e1a;padding:2px 5px;border-radius:4px;color:#aaa">POST {URL}</code> с заголовком <code style="background:#0e0e1a;padding:2px 5px;border-radius:4px;color:#aaa">Authorization: Bearer {key}</code><br>
+        Тело: <code style="background:#0e0e1a;padding:2px 5px;border-radius:4px;color:#aaa">{"to": "TON_ADDR", "amount": 100}</code>
+      </div>
+      <div style="margin-bottom:8px">
+        <div style="font-size:12px;color:#aaa;margin-bottom:4px">Fragment API URL</div>
+        <input type="text" id="frag-url" placeholder="https://api.fragment.com/payout" style="margin-bottom:0">
+      </div>
+      <div style="margin-bottom:8px">
+        <div style="font-size:12px;color:#aaa;margin-bottom:4px">Fragment API Key</div>
+        <input type="text" id="frag-key" placeholder="Bearer-токен от Fragment" style="margin-bottom:0">
+      </div>
+      <div style="margin-bottom:12px">
+        <div style="font-size:12px;color:#aaa;margin-bottom:4px">Минимальная сумма вывода (⭐)</div>
+        <input type="number" id="wd-min" value="50" min="1" style="width:120px">
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px">
+          <input type="checkbox" id="frag-auto" style="width:18px;height:18px;accent-color:#27ae60;cursor:pointer">
+          Автовывод через Fragment API
+        </label>
+      </div>
+      <button onclick="saveFragmentSettings()" class="success" style="width:100%">💾 Сохранить настройки</button>
+    </div>
+
+    <!-- Заявки на вывод -->
+    <div class="section">
+      <div class="section-title">📋 Заявки на вывод</div>
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <button class="secondary" style="flex:1;font-size:12px;padding:8px" onclick="loadWithdrawals('pending')">⏳ Ожидают</button>
+        <button class="secondary" style="flex:1;font-size:12px;padding:8px" onclick="loadWithdrawals('done')">✅ Выведены</button>
+        <button class="secondary" style="flex:1;font-size:12px;padding:8px" onclick="loadWithdrawals('')">Все</button>
+      </div>
+      <div id="withdrawals-list">
+        <div style="color:#888;font-size:13px;text-align:center;padding:10px">Нажми фильтр выше</div>
+      </div>
+    </div>
+
     <!-- Глобальные шансы -->
     <div class="section">
       <div class="section-title">🌍 Глобальные шансы (для всех)</div>
@@ -297,6 +339,7 @@
         loadLuckSlider();
         loadGlobalChance();
         loadUsers();
+        loadFragmentSettings();
 
       } catch(e) {
         document.getElementById('login-screen').style.display = 'none';
@@ -562,6 +605,73 @@
     document.getElementById('give-modal').addEventListener('click', (e) => {
       if (e.target === document.getElementById('give-modal')) closeGiveModal();
     });
+
+    // ===== FRAGMENT SETTINGS =====
+    async function loadFragmentSettings() {
+      const r = await api('GET', '/admin/withdrawal-settings');
+      if (!r || r.__error) return;
+      document.getElementById('frag-url').value = r.fragment_api_url || '';
+      document.getElementById('frag-key').value = r.fragment_api_key || '';
+      document.getElementById('wd-min').value = r.withdrawal_min || 50;
+      document.getElementById('frag-auto').checked = !!r.withdrawal_auto;
+    }
+
+    async function saveFragmentSettings() {
+      const r = await api('POST', '/admin/withdrawal-settings', {
+        fragment_api_url: document.getElementById('frag-url').value.trim(),
+        fragment_api_key:  document.getElementById('frag-key').value.trim(),
+        withdrawal_min:    parseInt(document.getElementById('wd-min').value) || 50,
+        withdrawal_auto:   document.getElementById('frag-auto').checked,
+      });
+      if (r?.ok) toast('✅ Настройки Fragment сохранены', '#27ae60');
+      else toast('❌ ' + (r?.detail || 'Ошибка'), '#e74c3c');
+    }
+
+    // ===== WITHDRAWALS =====
+    async function loadWithdrawals(status) {
+      const list = document.getElementById('withdrawals-list');
+      list.innerHTML = '<div style="color:#888;font-size:13px;text-align:center;padding:10px">Загрузка...</div>';
+      const rows = await api('GET', `/admin/withdrawals${status ? '?status=' + status : ''}`);
+      if (!rows || rows.__error) {
+        list.innerHTML = `<div style="color:#e74c3c;font-size:13px">${rows?.detail || 'Ошибка'}</div>`;
+        return;
+      }
+      if (!rows.length) {
+        list.innerHTML = '<div style="color:#888;font-size:13px;text-align:center;padding:10px">Пусто</div>';
+        return;
+      }
+      const statusColor = { pending: '#f5c842', done: '#27ae60', rejected: '#e74c3c' };
+      const statusLabel = { pending: '⏳ Ожидает', done: '✅ Выведено', rejected: '❌ Отклонено' };
+      list.innerHTML = rows.map(w => `
+        <div style="background:#0e0e1a;border-radius:10px;padding:12px;margin-bottom:8px">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
+            <div>
+              <div style="font-size:14px;font-weight:700">${w.name || w.username || 'ID:' + w.user_id} · ⭐ ${(w.amount||0).toLocaleString('ru')}</div>
+              <div style="font-size:11px;color:#666;margin-top:2px;font-family:monospace">${w.ton_address}</div>
+              <div style="font-size:11px;color:#555;margin-top:2px">${w.created_at?.slice(0,16).replace('T',' ')}</div>
+            </div>
+            <div style="font-size:12px;font-weight:700;color:${statusColor[w.status]||'#aaa'}">${statusLabel[w.status]||w.status}</div>
+          </div>
+          ${w.status === 'pending' ? `
+          <div style="display:flex;gap:6px;margin-top:6px">
+            <button class="success" style="flex:1;font-size:12px;padding:7px" onclick="approveWithdrawal(${w.id})">✅ Одобрить</button>
+            <button class="danger" style="flex:1;font-size:12px;padding:7px" onclick="rejectWithdrawal(${w.id})">❌ Отклонить</button>
+          </div>` : ''}
+        </div>
+      `).join('');
+    }
+
+    async function approveWithdrawal(id) {
+      const r = await api('POST', `/admin/withdrawals/${id}/approve`);
+      if (r?.ok) { toast('✅ Одобрено', '#27ae60'); loadWithdrawals('pending'); }
+      else toast('❌ ' + (r?.detail || 'Ошибка'), '#e74c3c');
+    }
+
+    async function rejectWithdrawal(id) {
+      const r = await api('POST', `/admin/withdrawals/${id}/reject`);
+      if (r?.ok) { toast('✅ Отклонено, баланс возвращён', '#e67e22'); loadWithdrawals('pending'); }
+      else toast('❌ ' + (r?.detail || 'Ошибка'), '#e74c3c');
+    }
   </script>
 </body>
 </html>
