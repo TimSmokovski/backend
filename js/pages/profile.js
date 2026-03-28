@@ -45,7 +45,12 @@ async function renderProfilePage() {
           oninput="onWithdrawInput()"
           style="width:100%;padding:11px 14px;border-radius:12px;border:1px solid #f5c84233;
           background:#0e0e1a;color:#fff;font-size:15px;font-weight:700;
-          box-sizing:border-box;outline:none;margin-bottom:14px;-moz-appearance:textfield;">
+          box-sizing:border-box;outline:none;margin-bottom:10px;-moz-appearance:textfield;">
+        <input id="withdraw-username" type="text" placeholder="Telegram username (без @)"
+          oninput="onWithdrawInput()"
+          style="width:100%;padding:11px 14px;border-radius:12px;border:1px solid #f5c84233;
+          background:#0e0e1a;color:#fff;font-size:15px;
+          box-sizing:border-box;outline:none;margin-bottom:14px;">
         <button id="withdraw-btn" onclick="doWithdraw()" disabled style="
           width:100%;padding:14px;border:none;border-radius:14px;cursor:not-allowed;
           background:#2a2a2a;color:#666;font-size:15px;font-weight:800;
@@ -132,11 +137,12 @@ function copyLink() {
 
 function onWithdrawInput() {
   const amount = parseInt(document.getElementById('withdraw-amount')?.value);
+  const username = (document.getElementById('withdraw-username')?.value || '').trim().replace(/^@/, '');
   const btn = document.getElementById('withdraw-btn');
   const star = document.getElementById('wd-star');
   const label = document.getElementById('wd-label');
   const realBalance = Math.max(0, (window.appState?.balance || 0) - (window.appState?.demo_balance || 0));
-  const valid = !isNaN(amount) && amount >= 50 && amount <= realBalance;
+  const valid = !isNaN(amount) && amount >= 50 && amount <= realBalance && username.length >= 3;
   if (!btn) return;
   btn.disabled = !valid;
   btn.style.cursor = valid ? 'pointer' : 'not-allowed';
@@ -148,13 +154,14 @@ function onWithdrawInput() {
 
 async function doWithdraw() {
   const amount = parseInt(document.getElementById('withdraw-amount')?.value);
+  const username = (document.getElementById('withdraw-username')?.value || '').trim().replace(/^@/, '');
   const btn = document.getElementById('withdraw-btn');
   const label = document.getElementById('wd-label');
-  if (!amount || btn?.disabled) return;
+  if (!amount || !username || btn?.disabled) return;
   if (btn) { btn.disabled = true; btn.style.cursor = 'not-allowed'; }
   if (label) label.textContent = 'Отправляем...';
 
-  const res = await API.requestWithdrawal(amount, '');
+  const res = await API.requestWithdrawal(amount, username);
   if (!res || res.__error) {
     showToast('❌ ' + (res?.detail || 'Ошибка'));
     if (btn) { btn.disabled = false; btn.style.cursor = 'pointer'; }
