@@ -1,5 +1,6 @@
 import json
 import os
+import httpx
 from fastapi import APIRouter, Depends, HTTPException
 import aiosqlite
 from database import DB_PATH
@@ -7,8 +8,26 @@ from auth import get_current_user
 
 router = APIRouter(tags=["social"])
 
-BOT_USERNAME = os.getenv("BOT_USERNAME", "YourBot")
-REF_BONUS = 100  # звёзд за каждого приглашённого
+BOT_TOKEN    = os.getenv("BOT_TOKEN", "")
+BOT_USERNAME = os.getenv("BOT_USERNAME", "backendpvp_bot")
+REF_BONUS    = 100  # звёзд за каждого приглашённого
+
+
+async def _is_subscribed(user_id: int, channel: str) -> bool:
+    """Проверяет подписку через getChatMember. Бот должен быть админом канала."""
+    if not channel.startswith("@"):
+        channel = "@" + channel
+    try:
+        async with httpx.AsyncClient(timeout=5) as client:
+            r = await client.get(
+                f"https://api.telegram.org/bot{BOT_TOKEN}/getChatMember",
+                params={"chat_id": channel, "user_id": user_id},
+            )
+            data = r.json()
+        status = data.get("result", {}).get("status", "left")
+        return status in ("member", "creator", "administrator", "restricted")
+    except Exception:
+        return False
 
 
 @router.get("/tasks")
@@ -19,11 +38,22 @@ async def get_tasks(user: dict = Depends(get_current_user)):
         tasks = await cur.fetchall()
         cur2 = await db.execute("SELECT task_id FROM user_tasks WHERE user_id = ?", (user["id"],))
         done_ids = {r[0] for r in await cur2.fetchall()}
-    return [
-        {"id": t["id"], "name": t["name"], "icon": t["icon"],
-         "reward": t["reward"], "url": t["url"], "done": t["id"] in done_ids}
-        for t in tasks
-    ]
+        cur3 = await db.execute("SELECT COUNT(*) FROM users WHERE ref_by = ?", (user["id"],))
+        invited_count = (await cur3.fetchone())[0]
+
+    result = []
+    for t in tasks:
+        task_type = t["type"] if "type" in t.keys() else None
+        item = {
+            "id": t["id"], "name": t["name"], "icon": t["icon"],
+            "reward": t["reward"], "url": t["url"],
+            "type": task_type, "done": t["id"] in done_ids,
+        }
+        if task_type == "invite_friends":
+            item["progress"] = min(invited_count, 3)
+            item["progress_max"] = 3
+        result.append(item)
+    return result
 
 
 @router.post("/tasks/{task_id}/complete")
@@ -39,6 +69,34 @@ async def complete_task(task_id: int, user: dict = Depends(get_current_user)):
         )
         if await cur2.fetchone():
             raise HTTPException(status_code=400, detail="Уже выполнено")
+
+    task_type = task["type"] if "type" in task.keys() else None
+
+    # ── Проверка подписки на канал ─────────────────────────────────────────
+    if task_type == "channel_sub":
+        url = task["url"] or ""
+        # Извлекаем username из ссылки t.me/username
+        channel = url.rstrip("/").split("/")[-1]
+        if not channel:
+            raise HTTPException(400, "Канал не настроен — обратись к администратору")
+        subscribed = await _is_subscribed(user["id"], channel)
+        if not subscribed:
+            raise HTTPException(400, "Сначала подпишись на канал, затем нажми «Проверить»")
+
+    # ── Проверка приглашения 3 друзей ──────────────────────────────────────
+    elif task_type == "invite_friends":
+        async with aiosqlite.connect(DB_PATH) as db:
+            cur = await db.execute(
+                "SELECT COUNT(*) FROM users WHERE ref_by = ?", (user["id"],)
+            )
+            invited = (await cur.fetchone())[0]
+        if invited < 3:
+            raise HTTPException(
+                400, f"Нужно пригласить 3 друзей. Приглашено: {invited}/3"
+            )
+
+    # ── Зачисляем награду ─────────────────────────────────────────────────
+    async with aiosqlite.connect(DB_PATH) as db:
         await db.execute("INSERT INTO user_tasks (user_id, task_id) VALUES (?, ?)", (user["id"], task_id))
         await db.execute("UPDATE users SET balance = balance + ? WHERE id = ?", (task["reward"], user["id"]))
         await db.commit()

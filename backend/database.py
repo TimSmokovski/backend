@@ -140,6 +140,13 @@ async def init_db():
             )
         """)
 
+        # Миграция: тип задания (channel_sub, invite_friends, или NULL = обычное)
+        try:
+            await db.execute("ALTER TABLE tasks ADD COLUMN type TEXT")
+            await db.commit()
+        except Exception:
+            pass
+
         # Миграция: добавляем photo_url если колонки ещё нет
         try:
             await db.execute("ALTER TABLE users ADD COLUMN photo_url TEXT")
@@ -184,6 +191,23 @@ async def init_db():
                     ("Подписаться на канал", "tg", 1, "https://t.me/example3"),
                     ("Подписаться на IMac", "tg", 1, "https://t.me/example4"),
                 ],
+            )
+            await db.commit()
+
+        # Добавляем спец-задания если их ещё нет
+        cur = await db.execute("SELECT COUNT(*) FROM tasks WHERE type = 'channel_sub'")
+        if (await cur.fetchone())[0] == 0:
+            await db.execute(
+                "INSERT INTO tasks (name, icon, reward, url, type) VALUES (?, ?, ?, ?, ?)",
+                ("Подписаться на канал", "tg", 1, "https://t.me/example", "channel_sub"),
+            )
+            await db.commit()
+
+        cur = await db.execute("SELECT COUNT(*) FROM tasks WHERE type = 'invite_friends'")
+        if (await cur.fetchone())[0] == 0:
+            await db.execute(
+                "INSERT INTO tasks (name, icon, reward, url, type) VALUES (?, ?, ?, ?, ?)",
+                ("Пригласить 3 друзей", "invite", 3, None, "invite_friends"),
             )
             await db.commit()
 

@@ -148,3 +148,26 @@ async def set_global_chance(body: dict, _admin: dict = Depends(require_admin)):
     games.GLOBAL_WIN_CHANCE = chance
     await set_setting("global_win_chance", chance)
     return {"ok": True, "chance": chance}
+
+
+@router.get("/channel-task")
+async def get_channel_task(_admin: dict = Depends(require_admin)):
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        cur = await db.execute("SELECT url FROM tasks WHERE type = 'channel_sub' LIMIT 1")
+        row = await cur.fetchone()
+    if not row:
+        return {"username": ""}
+    url = row["url"] or ""
+    username = url.rstrip("/").split("/")[-1]
+    return {"username": username}
+
+
+@router.post("/channel-task")
+async def set_channel_task(body: dict, _admin: dict = Depends(require_admin)):
+    username = (body.get("username") or "").strip().lstrip("@")
+    url = f"https://t.me/{username}" if username else ""
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("UPDATE tasks SET url = ? WHERE type = 'channel_sub'", (url,))
+        await db.commit()
+    return {"ok": True}
