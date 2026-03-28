@@ -6,6 +6,9 @@ from auth import get_current_user
 router = APIRouter(prefix="/payments", tags=["payments"])
 
 BOT_TOKEN = os.getenv("BOT_TOKEN", "")
+BOT_USERNAME = os.getenv("BOT_USERNAME", "")
+
+
 @router.post("/create_invoice")
 async def create_invoice(body: dict, user: dict = Depends(get_current_user)):
     amount = body.get("amount")
@@ -31,4 +34,4 @@ async def create_invoice(body: dict, user: dict = Depends(get_current_user)):
     if not data.get("ok"):
         raise HTTPException(status_code=502, detail=data.get("description", "Ошибка Telegram API"))
 
-    return {"ok": True}
+    return {"ok": True, "bot_username": BOT_USERNAME}
