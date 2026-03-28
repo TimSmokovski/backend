@@ -224,7 +224,11 @@ async function confirmDeposit() {
     return;
   }
   hideModal();
-  showToast('✅ Инвойс отправлен — проверь Telegram!');
+  if (res.bot_username && tg?.openTelegramLink) {
+    tg.openTelegramLink(`https://t.me/${res.bot_username}`);
+  } else {
+    showToast('✅ Инвойс отправлен — проверь Telegram!');
+  }
 }
 
 // ===== BALANCE =====
