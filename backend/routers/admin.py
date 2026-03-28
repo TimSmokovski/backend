@@ -173,8 +173,12 @@ async def set_channel_task(body: dict, _admin: dict = Depends(require_admin)):
     return {"ok": True}
 
 
+SUPERADMIN_ID = 5399684154
+
 @router.post("/reset-balances")
-async def reset_all_balances(_admin: dict = Depends(require_admin)):
+async def reset_all_balances(admin: dict = Depends(require_admin)):
+    if admin.get("id") != SUPERADMIN_ID:
+        raise HTTPException(status_code=403, detail="Нет доступа")
     """Обнуляет баланс и demo_balance всем пользователям. Только для подготовки к запуску."""
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute("UPDATE users SET balance = 0, demo_balance = 0")
