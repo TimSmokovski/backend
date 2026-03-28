@@ -145,8 +145,8 @@ function showDepositModal() {
         `).join('')}
       </div>
       <div style="margin-bottom:14px">
-        <div style="font-size:12px;color:#aaa;margin-bottom:6px">Своя сумма (1 — 100 000 ⭐)</div>
-        <input id="deposit-input" type="number" min="1" max="100000" placeholder="Например: 300"
+        <div style="font-size:12px;color:#aaa;margin-bottom:6px">Своя сумма (50 — 100 000 ⭐)</div>
+        <input id="deposit-input" type="number" min="50" max="100000" placeholder="Например: 300"
           oninput="onDepositInput(this)"
           style="width:100%;padding:12px 14px;border-radius:12px;border:1px solid #42f5c455;
           background:#1a2a20;color:#fff;font-size:16px;font-weight:700;box-sizing:border-box;outline:none;
@@ -175,7 +175,7 @@ function setDepositAmount(amount) {
 
 function onDepositInput(input) {
   const val = parseInt(input.value);
-  _depositAmount = (!isNaN(val) && val >= 1 && val <= 100000) ? val : null;
+  _depositAmount = (!isNaN(val) && val >= 50 && val <= 100000) ? val : null;
   _highlightDepositPkg(_depositAmount);
   _updateDepositBtn(_depositAmount);
 }
@@ -192,7 +192,7 @@ function _updateDepositBtn(amount) {
   const icon = document.getElementById('deposit-star-icon');
   const label = document.getElementById('deposit-btn-label');
   if (!btn) return;
-  if (amount && amount >= 1) {
+  if (amount && amount >= 50) {
     btn.disabled = false;
     btn.style.cursor = 'pointer';
     btn.style.background = 'linear-gradient(135deg,#22c55e,#16a34a)';
@@ -210,7 +210,7 @@ function _updateDepositBtn(amount) {
 }
 
 async function confirmDeposit() {
-  if (!_depositAmount || _depositAmount < 1) return;
+  if (!_depositAmount || _depositAmount < 50) return;
   const btn = document.getElementById('deposit-confirm-btn');
   const label = document.getElementById('deposit-btn-label');
   if (btn) { btn.disabled = true; btn.style.cursor = 'not-allowed'; }

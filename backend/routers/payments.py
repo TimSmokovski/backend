@@ -12,8 +12,8 @@ BOT_USERNAME = os.getenv("BOT_USERNAME", "")
 @router.post("/create_invoice")
 async def create_invoice(body: dict, user: dict = Depends(get_current_user)):
     amount = body.get("amount")
-    if not isinstance(amount, int) or amount < 1 or amount > 100_000:
-        raise HTTPException(status_code=400, detail="Сумма должна быть от 1 до 100 000")
+    if not isinstance(amount, int) or amount < 50 or amount > 100_000:
+        raise HTTPException(status_code=400, detail="Сумма должна быть от 50 до 100 000")
 
     payload = f"{user['id']}:{amount}"
 
