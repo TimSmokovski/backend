@@ -174,35 +174,6 @@
       </div>
     </div>
 
-    <!-- Настройки Fragment -->
-    <div class="section">
-      <div class="section-title">💸 Настройки вывода (Fragment)</div>
-      <div style="font-size:12px;color:#666;margin-bottom:12px;line-height:1.5">
-        API-ключ и URL берёшь у владельца Fragment-аккаунта бота.<br>
-        Запрос: <code style="background:#0e0e1a;padding:2px 5px;border-radius:4px;color:#aaa">POST {URL}</code> с заголовком <code style="background:#0e0e1a;padding:2px 5px;border-radius:4px;color:#aaa">Authorization: Bearer {key}</code><br>
-        Тело: <code style="background:#0e0e1a;padding:2px 5px;border-radius:4px;color:#aaa">{"to": "TON_ADDR", "amount": 100}</code>
-      </div>
-      <div style="margin-bottom:8px">
-        <div style="font-size:12px;color:#aaa;margin-bottom:4px">Fragment API URL</div>
-        <input type="text" id="frag-url" placeholder="https://api.fragment.com/payout" style="margin-bottom:0">
-      </div>
-      <div style="margin-bottom:8px">
-        <div style="font-size:12px;color:#aaa;margin-bottom:4px">Fragment API Key</div>
-        <input type="text" id="frag-key" placeholder="Bearer-токен от Fragment" style="margin-bottom:0">
-      </div>
-      <div style="margin-bottom:12px">
-        <div style="font-size:12px;color:#aaa;margin-bottom:4px">Минимальная сумма вывода (⭐)</div>
-        <input type="number" id="wd-min" value="50" min="1" style="width:120px">
-      </div>
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
-        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px">
-          <input type="checkbox" id="frag-auto" style="width:18px;height:18px;accent-color:#27ae60;cursor:pointer">
-          Автовывод через Fragment API
-        </label>
-      </div>
-      <button onclick="saveFragmentSettings()" class="success" style="width:100%">💾 Сохранить настройки</button>
-    </div>
-
     <!-- Заявки на вывод -->
     <div class="section">
       <div class="section-title">📋 Заявки на вывод</div>
@@ -339,7 +310,6 @@
         loadLuckSlider();
         loadGlobalChance();
         loadUsers();
-        loadFragmentSettings();
 
       } catch(e) {
         document.getElementById('login-screen').style.display = 'none';
@@ -605,27 +575,6 @@
     document.getElementById('give-modal').addEventListener('click', (e) => {
       if (e.target === document.getElementById('give-modal')) closeGiveModal();
     });
-
-    // ===== FRAGMENT SETTINGS =====
-    async function loadFragmentSettings() {
-      const r = await api('GET', '/admin/withdrawal-settings');
-      if (!r || r.__error) return;
-      document.getElementById('frag-url').value = r.fragment_api_url || '';
-      document.getElementById('frag-key').value = r.fragment_api_key || '';
-      document.getElementById('wd-min').value = r.withdrawal_min || 50;
-      document.getElementById('frag-auto').checked = !!r.withdrawal_auto;
-    }
-
-    async function saveFragmentSettings() {
-      const r = await api('POST', '/admin/withdrawal-settings', {
-        fragment_api_url: document.getElementById('frag-url').value.trim(),
-        fragment_api_key:  document.getElementById('frag-key').value.trim(),
-        withdrawal_min:    parseInt(document.getElementById('wd-min').value) || 50,
-        withdrawal_auto:   document.getElementById('frag-auto').checked,
-      });
-      if (r?.ok) toast('✅ Настройки Fragment сохранены', '#27ae60');
-      else toast('❌ ' + (r?.detail || 'Ошибка'), '#e74c3c');
-    }
 
     // ===== WITHDRAWALS =====
     async function loadWithdrawals(status) {
