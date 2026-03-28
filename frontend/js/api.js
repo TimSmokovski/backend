@@ -72,6 +72,7 @@ const API = {
   crashCashout: ()              => apiCall('POST', '/crash/cashout'),
   spinSlots: (bet)              => apiCall('POST', '/slots/spin', { bet, ..._adminLuck() }),
   upgrade: (itemId, targetId)   => apiCall('POST', '/upgrade', { item_id: itemId, target_id: targetId }),
+  createInvoice: (amount)       => apiCall('POST', '/payments/create_invoice', { amount }),
 };
 
 // Мок-данные для локальной разработки (если API недоступен)

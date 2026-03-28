@@ -2,13 +2,16 @@
 Telegram Bot — точка входа в Mini App
 """
 import os
+import aiosqlite
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
-from telegram.ext import Application, CommandHandler, ContextTypes
+from telegram.ext import Application, CommandHandler, ContextTypes, PreCheckoutQueryHandler, MessageHandler, filters
 from dotenv import load_dotenv
 
 load_dotenv()
 
 BOT_TOKEN = os.getenv("BOT_TOKEN", "")
+_BOT_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_PATH = os.path.join(_BOT_DIR, "backend", "casearena.db")
 WEBAPP_URL = os.getenv("WEBAPP_URL", "https://your-frontend.netlify.app")
 
 ADMIN_IDS = set(
@@ -79,6 +82,36 @@ async def play(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Нажми кнопку ниже:", reply_markup=keyboard)
 
 
+async def pre_checkout(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.pre_checkout_query.answer(ok=True)
+
+
+async def successful_payment(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    payment = update.message.successful_payment
+    stars = payment.total_amount  # В XTR total_amount = кол-во звёзд напрямую
+    payload = payment.invoice_payload  # Формат: "user_id:amount"
+
+    try:
+        user_id = int(payload.split(":")[0])
+    except Exception:
+        return
+
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            "UPDATE users SET balance = balance + ? WHERE id = ?", (stars, user_id)
+        )
+        cur = await db.execute("SELECT ref_by FROM users WHERE id = ?", (user_id,))
+        row = await cur.fetchone()
+        if row and row[0]:
+            ref_bonus = max(1, stars // 10)
+            await db.execute(
+                "UPDATE users SET balance = balance + ? WHERE id = ?", (ref_bonus, row[0])
+            )
+        await db.commit()
+
+    await update.message.reply_text(f"✅ Баланс пополнен на {stars} ⭐\nПриятной игры!")
+
+
 import asyncio
 
 def main():
@@ -91,6 +124,8 @@ def main():
     app.add_handler(CommandHandler("help", help_cmd))
     app.add_handler(CommandHandler("play", play))
     app.add_handler(CommandHandler("admin", admin_cmd))
+    app.add_handler(PreCheckoutQueryHandler(pre_checkout))
+    app.add_handler(MessageHandler(filters.SUCCESSFUL_PAYMENT, successful_payment))
 
     print("✅ Бот запущен!")
     app.run_polling(drop_pending_updates=True)

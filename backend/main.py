@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from database import init_db
-from routers import users, cases, pvp, games, social, admin
+from routers import users, cases, pvp, games, social, admin, payments
 from routers.games import crash_loop
 
 
@@ -34,6 +34,7 @@ app.include_router(pvp.router)
 app.include_router(games.router)
 app.include_router(social.router)
 app.include_router(admin.router)
+app.include_router(payments.router)
 
 
 @app.get("/")
