@@ -174,6 +174,22 @@
       </div>
     </div>
 
+    <!-- Задание: подписка на канал -->
+    <div class="section">
+      <div class="section-title">✈️ Задание: подписка на канал</div>
+      <div style="font-size:12px;color:#666;margin-bottom:12px;line-height:1.6">
+        Укажи username канала (без @).<br>
+        ⚠️ Бот <b>@backendpvp_bot</b> должен быть <b>администратором</b> этого канала, иначе проверка не сработает.
+      </div>
+      <div style="margin-bottom:10px">
+        <div style="font-size:12px;color:#aaa;margin-bottom:4px">Username канала</div>
+        <div class="row">
+          <input type="text" id="channel-username" placeholder="example_channel">
+          <button onclick="saveChannelTask()" class="success">💾 Сохранить</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Заявки на вывод -->
     <div class="section">
       <div class="section-title">📋 Заявки на вывод</div>
@@ -310,6 +326,7 @@
         loadLuckSlider();
         loadGlobalChance();
         loadUsers();
+        loadChannelTask();
 
       } catch(e) {
         document.getElementById('login-screen').style.display = 'none';
@@ -575,6 +592,21 @@
     document.getElementById('give-modal').addEventListener('click', (e) => {
       if (e.target === document.getElementById('give-modal')) closeGiveModal();
     });
+
+    // ===== CHANNEL TASK =====
+    async function loadChannelTask() {
+      const r = await api('GET', '/admin/channel-task');
+      if (r && !r.__error) {
+        document.getElementById('channel-username').value = r.username || '';
+      }
+    }
+
+    async function saveChannelTask() {
+      const username = document.getElementById('channel-username').value.trim().replace(/^@/, '');
+      const r = await api('POST', '/admin/channel-task', { username });
+      if (r?.ok) toast('✅ Канал сохранён', '#27ae60');
+      else toast('❌ ' + (r?.detail || 'Ошибка'), '#e74c3c');
+    }
 
     // ===== WITHDRAWALS =====
     async function loadWithdrawals(status) {
