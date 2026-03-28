@@ -6,7 +6,7 @@ async function renderProfilePage() {
   const user = window.appState || MOCK.user;
 
   const refData = await API.getReferral().catch(() => null) || MOCK.referral;
-  _refLink = refData.ref_link || `https://t.me/backendpvp_bot?start=ref_${user?.id || ''}`;
+  _refLink = refData.ref_link || `https://t.me/DC_GalaxySpinBot?start=ref_${user?.id || ''}`;
   const ref = refData;
 
   page.innerHTML = `
@@ -120,7 +120,7 @@ function openAdminPanel() {
 }
 
 function doInvite() {
-  const link = _refLink || `https://t.me/backendpvp_bot?start=ref_${window.appState?.id || ''}`;
+  const link = _refLink || `https://t.me/DC_GalaxySpinBot?start=ref_${window.appState?.id || ''}`;
   if (tg?.openTelegramLink) {
     tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent('🎰 Играй со мной и получи бонус!')}`);
   } else {
@@ -130,7 +130,7 @@ function doInvite() {
 }
 
 function copyLink() {
-  const link = _refLink || `https://t.me/backendpvp_bot?start=ref_${window.appState?.id || ''}`;
+  const link = _refLink || `https://t.me/DC_GalaxySpinBot?start=ref_${window.appState?.id || ''}`;
   copyToClipboard(link);
   showToast('📋 Ссылка скопирована!');
 }
