@@ -11,8 +11,8 @@ BOT_TOKEN = os.getenv("BOT_TOKEN", "")
 
 
 def verify_init_data(init_data: str) -> dict:
-    if not init_data or init_data == "test_user":
-        return {"id": 999999, "first_name": "Тест", "username": "test"}
+    if not init_data:
+        raise HTTPException(status_code=403, detail="Требуется авторизация Telegram")
     try:
         parsed = {}
         for part in init_data.split("&"):
@@ -33,7 +33,7 @@ def verify_init_data(init_data: str) -> dict:
 
 
 async def get_current_user(
-    x_init_data: str = Header(default="test_user", alias="X-Init-Data"),
+    x_init_data: str = Header(default="", alias="X-Init-Data"),
 ) -> dict:
     user_data = verify_init_data(x_init_data)
     tg_id = user_data.get("id", 999999)

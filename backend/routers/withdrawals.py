@@ -6,7 +6,7 @@ from routers.admin import require_admin
 
 router = APIRouter(tags=["withdrawals"])
 
-WITHDRAWAL_MIN = 50
+WITHDRAWAL_MIN = 100
 
 
 # ── пользователь ───────────────────────────────────────────────────────────

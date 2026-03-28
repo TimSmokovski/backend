@@ -41,7 +41,7 @@ async function renderProfilePage() {
             <img src="assets/tg_star.png" style="width:16px;height:16px;object-fit:contain"> ${realBalance.toLocaleString()}
           </span>
         </div>
-        <input id="withdraw-amount" type="number" min="50" max="${realBalance}" placeholder="Сумма (мин. 50 ⭐)"
+        <input id="withdraw-amount" type="number" min="100" max="${realBalance}" placeholder="Сумма (мин. 100 ⭐)"
           oninput="onWithdrawInput()"
           style="width:100%;padding:11px 14px;border-radius:12px;border:1px solid #f5c84233;
           background:#0e0e1a;color:#fff;font-size:15px;font-weight:700;
@@ -142,7 +142,7 @@ function onWithdrawInput() {
   const star = document.getElementById('wd-star');
   const label = document.getElementById('wd-label');
   const realBalance = Math.max(0, (window.appState?.balance || 0) - (window.appState?.demo_balance || 0));
-  const valid = !isNaN(amount) && amount >= 50 && amount <= realBalance && username.length >= 3;
+  const valid = !isNaN(amount) && amount >= 100 && amount <= realBalance && username.length >= 3;
   if (!btn) return;
   btn.disabled = !valid;
   btn.style.cursor = valid ? 'pointer' : 'not-allowed';

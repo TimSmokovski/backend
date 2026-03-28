@@ -35,7 +35,7 @@ async def init_db():
                 id          INTEGER PRIMARY KEY,
                 name        TEXT DEFAULT 'Игрок',
                 username    TEXT,
-                balance     INTEGER DEFAULT 1000,
+                balance     INTEGER DEFAULT 0,
                 ref_by      INTEGER,
                 created_at  TEXT DEFAULT (datetime('now')),
                 free_case_at TEXT,
