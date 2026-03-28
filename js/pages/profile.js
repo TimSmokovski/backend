@@ -31,7 +31,7 @@ async function renderProfilePage() {
 
     <div style="margin:0 12px 16px;padding:20px;background:linear-gradient(135deg,#1e1a0e,#2a2010);border-radius:18px;border:1px solid #f5c84233;box-shadow:0 4px 24px #f5c84218">
       <div style="font-size:20px;font-weight:800;margin-bottom:4px">Вывод звёзд</div>
-      <div style="font-size:13px;color:#aaa;margin-bottom:16px">На TON-кошелёк через Fragment · от 50 ⭐</div>
+      <div style="font-size:13px;color:#aaa;margin-bottom:16px">Через Fragment · минимум 50 ⭐</div>
       ${(() => {
         const realBalance = Math.max(0, (user.balance || 0) - (user.demo_balance || 0));
         return `
@@ -45,12 +45,7 @@ async function renderProfilePage() {
           oninput="onWithdrawInput()"
           style="width:100%;padding:11px 14px;border-radius:12px;border:1px solid #f5c84233;
           background:#0e0e1a;color:#fff;font-size:15px;font-weight:700;
-          box-sizing:border-box;outline:none;margin-bottom:10px;-moz-appearance:textfield;">
-        <input id="withdraw-ton" type="text" placeholder="TON-адрес (UQ... или EQ...)"
-          oninput="onWithdrawInput()"
-          style="width:100%;padding:11px 14px;border-radius:12px;border:1px solid #f5c84233;
-          background:#0e0e1a;color:#fff;font-size:13px;font-family:monospace;
-          box-sizing:border-box;outline:none;margin-bottom:14px;">
+          box-sizing:border-box;outline:none;margin-bottom:14px;-moz-appearance:textfield;">
         <button id="withdraw-btn" onclick="doWithdraw()" disabled style="
           width:100%;padding:14px;border:none;border-radius:14px;cursor:not-allowed;
           background:#2a2a2a;color:#666;font-size:15px;font-weight:800;
@@ -90,7 +85,7 @@ async function renderProfilePage() {
             <div style="font-size:13px;font-weight:700;display:flex;align-items:center;gap:4px">
               <img src="assets/tg_star.png" style="width:13px;height:13px"> ${w.amount.toLocaleString()}
             </div>
-            <div style="font-size:11px;color:#666;margin-top:2px">${w.ton_address.slice(0,12)}…</div>
+            <div style="font-size:11px;color:#666;margin-top:2px">${w.created_at?.slice(0,10)}</div>
           </div>
           <div style="font-size:12px;font-weight:700;color:${statusColor[w.status] || '#aaa'}">${statusLabel[w.status] || w.status}</div>
         </div>
@@ -137,12 +132,11 @@ function copyLink() {
 
 function onWithdrawInput() {
   const amount = parseInt(document.getElementById('withdraw-amount')?.value);
-  const ton = (document.getElementById('withdraw-ton')?.value || '').trim();
   const btn = document.getElementById('withdraw-btn');
   const star = document.getElementById('wd-star');
   const label = document.getElementById('wd-label');
   const realBalance = Math.max(0, (window.appState?.balance || 0) - (window.appState?.demo_balance || 0));
-  const valid = !isNaN(amount) && amount >= 50 && amount <= realBalance && ton.length >= 10;
+  const valid = !isNaN(amount) && amount >= 50 && amount <= realBalance;
   if (!btn) return;
   btn.disabled = !valid;
   btn.style.cursor = valid ? 'pointer' : 'not-allowed';
@@ -154,14 +148,13 @@ function onWithdrawInput() {
 
 async function doWithdraw() {
   const amount = parseInt(document.getElementById('withdraw-amount')?.value);
-  const ton = (document.getElementById('withdraw-ton')?.value || '').trim();
   const btn = document.getElementById('withdraw-btn');
   const label = document.getElementById('wd-label');
-  if (!amount || !ton || btn?.disabled) return;
+  if (!amount || btn?.disabled) return;
   if (btn) { btn.disabled = true; btn.style.cursor = 'not-allowed'; }
   if (label) label.textContent = 'Отправляем...';
 
-  const res = await API.requestWithdrawal(amount, ton);
+  const res = await API.requestWithdrawal(amount, '');
   if (!res || res.__error) {
     showToast('❌ ' + (res?.detail || 'Ошибка'));
     if (btn) { btn.disabled = false; btn.style.cursor = 'pointer'; }
