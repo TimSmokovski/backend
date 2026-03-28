@@ -138,9 +138,6 @@ async def place_bet(body: dict, user: dict = Depends(get_current_user)):
     amount = int(body.get("amount", 0))
     if amount < 10:
         raise HTTPException(status_code=400, detail="Минимальная ставка — 10 звёзд")
-    if user["balance"] < amount:
-        raise HTTPException(status_code=400, detail="Недостаточно звёзд")
-
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
         round_id = await get_or_create_active_round(db)
@@ -161,7 +158,12 @@ async def place_bet(body: dict, user: dict = Depends(get_current_user)):
         if count >= MAX_PLAYERS:
             raise HTTPException(status_code=400, detail="Комната заполнена")
 
-        await db.execute("UPDATE users SET balance = balance - ? WHERE id = ?", (amount, user["id"]))
+        cur = await db.execute(
+            "UPDATE users SET balance = balance - ? WHERE id = ? AND balance >= ?",
+            (amount, user["id"], amount),
+        )
+        if cur.rowcount == 0:
+            raise HTTPException(status_code=400, detail="Недостаточно звёзд")
         await db.execute("INSERT INTO pvp_bets (round_id, user_id, amount) VALUES (?, ?, ?)", (round_id, user["id"], amount))
 
         # Если стало 2 игрока — запускаем таймер

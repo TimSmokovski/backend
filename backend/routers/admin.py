@@ -171,3 +171,18 @@ async def set_channel_task(body: dict, _admin: dict = Depends(require_admin)):
         await db.execute("UPDATE tasks SET url = ? WHERE type = 'channel_sub'", (url,))
         await db.commit()
     return {"ok": True}
+
+
+@router.post("/reset-balances")
+async def reset_all_balances(_admin: dict = Depends(require_admin)):
+    """Обнуляет баланс и demo_balance всем пользователям. Только для подготовки к запуску."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("UPDATE users SET balance = 0, demo_balance = 0")
+        await db.execute("DELETE FROM user_tasks")
+        await db.execute("DELETE FROM case_wins")
+        await db.execute("DELETE FROM pvp_bets")
+        await db.execute("DELETE FROM pvp_rounds")
+        await db.execute("DELETE FROM crash_bets")
+        await db.execute("DELETE FROM withdrawals")
+        await db.commit()
+    return {"ok": True, "message": "Все балансы обнулены, история очищена"}

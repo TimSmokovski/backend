@@ -174,6 +174,13 @@
       </div>
     </div>
 
+    <!-- Сброс данных -->
+    <div class="section" style="border:1px solid #e74c3c44">
+      <div class="section-title" style="color:#e74c3c">⚠️ Сброс данных (перед запуском)</div>
+      <div style="font-size:12px;color:#888;margin-bottom:12px">Обнуляет все балансы, историю игр, задания и заявки на вывод. Действие необратимо.</div>
+      <button onclick="resetAllBalances()" style="width:100%;background:#c0392b;color:#fff;border:none;padding:12px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer">🗑️ Обнулить всё и начать чисто</button>
+    </div>
+
     <!-- Заявки на вывод -->
     <div class="section">
       <div class="section-title">📋 Заявки на вывод</div>
@@ -576,6 +583,15 @@
     document.getElementById('give-modal').addEventListener('click', (e) => {
       if (e.target === document.getElementById('give-modal')) closeGiveModal();
     });
+
+    // ===== RESET ALL =====
+    async function resetAllBalances() {
+      if (!confirm('⚠️ Обнулить ВСЕ балансы и историю? Это действие нельзя отменить!')) return;
+      if (!confirm('Точно уверен? Все звёзды пользователей будут удалены.')) return;
+      const r = await api('POST', '/admin/reset-balances');
+      if (r?.ok) toast('✅ ' + r.message, '#27ae60');
+      else toast('❌ Ошибка', '#e74c3c');
+    }
 
     // ===== CHANNEL TASK =====
     async function loadChannelTask() {

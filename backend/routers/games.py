@@ -57,7 +57,12 @@ def _chance_weights(chance: int):
 
 async def deduct_and_add(user_id, deduct, add):
     async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute("UPDATE users SET balance = balance - ? + ? WHERE id = ?", (deduct, add, user_id))
+        cur = await db.execute(
+            "UPDATE users SET balance = balance - ? + ? WHERE id = ? AND balance >= ?",
+            (deduct, add, user_id, deduct),
+        )
+        if cur.rowcount == 0:
+            raise HTTPException(400, "Недостаточно звёзд")
         await db.commit()
         cur = await db.execute("SELECT balance FROM users WHERE id = ?", (user_id,))
         row = await cur.fetchone()
@@ -248,13 +253,16 @@ async def crash_bet(body: dict, user: dict = Depends(get_current_user)):
     if uid in _crash["players"]:
         raise HTTPException(400, "Вы уже в этом раунде")
     bet = max(10, int(body.get("amount", 100)))
-    if user["balance"] < bet:
-        raise HTTPException(400, "Недостаточно звёзд")
     luck = body.get("luck", -1)
     if isinstance(luck, (int, float)) and 0 <= luck <= 100 and _is_admin(user):
         _crash["crash_point"] = _gen_crash(int(luck))
     async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute("UPDATE users SET balance = balance - ? WHERE id = ?", (bet, user["id"]))
+        cur = await db.execute(
+            "UPDATE users SET balance = balance - ? WHERE id = ? AND balance >= ?",
+            (bet, user["id"], bet),
+        )
+        if cur.rowcount == 0:
+            raise HTTPException(400, "Недостаточно звёзд")
         await db.execute(
             "INSERT INTO crash_bets (user_id, amount, round_id) VALUES (?, ?, ?)",
             (user["id"], bet, _crash["round_id"]),

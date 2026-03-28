@@ -36,7 +36,9 @@ async def get_current_user(
     x_init_data: str = Header(default="", alias="X-Init-Data"),
 ) -> dict:
     user_data = verify_init_data(x_init_data)
-    tg_id = user_data.get("id", 999999)
+    tg_id = user_data.get("id")
+    if not tg_id:
+        raise HTTPException(status_code=403, detail="Требуется авторизация Telegram")
     name = user_data.get("first_name", "Игрок")
     username = user_data.get("username")
     photo_url = user_data.get("photo_url")
