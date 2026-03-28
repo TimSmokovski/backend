@@ -12,14 +12,14 @@ WITHDRAWAL_MIN = 50
 
 # ── helpers ────────────────────────────────────────────────────────────────
 
-async def _fragment_payout(api_key: str, api_url: str, user_id: int, stars: int):
+async def _fragment_payout(api_key: str, api_url: str, user_id: int, stars: int, username: str = ""):
     """Вызов Fragment API. Возвращает (ok: bool, raw_response: dict)."""
     try:
         async with httpx.AsyncClient(timeout=20) as client:
             resp = await client.post(
                 api_url,
                 headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
-                json={"user_id": user_id, "amount": stars},
+                json={"user_id": user_id, "username": username, "amount": stars},
             )
             data = resp.json()
         ok = bool(data.get("ok") or data.get("success") or resp.status_code in (200, 201))
@@ -33,9 +33,12 @@ async def _fragment_payout(api_key: str, api_url: str, user_id: int, stars: int)
 @router.post("/withdrawals/request")
 async def request_withdrawal(body: dict, user: dict = Depends(get_current_user)):
     amount = body.get("amount")
+    username = (body.get("ton_address") or "").strip().lstrip("@")
 
     if not isinstance(amount, int) or amount < WITHDRAWAL_MIN:
         raise HTTPException(400, f"Минимальная сумма вывода — {WITHDRAWAL_MIN} ⭐")
+    if not username:
+        raise HTTPException(400, "Укажи Telegram username")
 
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
@@ -57,7 +60,7 @@ async def request_withdrawal(body: dict, user: dict = Depends(get_current_user))
         )
         cur2 = await db.execute(
             "INSERT INTO withdrawals (user_id, amount, ton_address) VALUES (?, ?, ?)",
-            (user["id"], amount, ""),
+            (user["id"], amount, username),
         )
         withdrawal_id = cur2.lastrowid
         await db.commit()
@@ -71,7 +74,7 @@ async def request_withdrawal(body: dict, user: dict = Depends(get_current_user))
     fragment_response = None
 
     if auto and api_key and api_url:
-        ok, resp_data = await _fragment_payout(api_key, api_url, user["id"], amount)
+        ok, resp_data = await _fragment_payout(api_key, api_url, user["id"], amount, username)
         import json
         fragment_response = json.dumps(resp_data)
         status = "done" if ok else "pending"
