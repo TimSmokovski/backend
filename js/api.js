@@ -18,7 +18,7 @@ async function apiCall(method, path, data = null) {
     method,
     headers: {
       'Content-Type': 'application/json',
-      'X-Init-Data': tg?.initData || 'test_user',
+      'X-Init-Data': tg?.initData || '',
     },
   };
   if (data) opts.body = JSON.stringify(data);
