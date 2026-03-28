@@ -19,9 +19,8 @@ async def create_invoice(body: dict, user: dict = Depends(get_current_user)):
 
     async with httpx.AsyncClient() as client:
         resp = await client.post(
-            f"https://api.telegram.org/bot{BOT_TOKEN}/sendInvoice",
+            f"https://api.telegram.org/bot{BOT_TOKEN}/createInvoiceLink",
             json={
-                "chat_id": user["id"],
                 "title": f"Пополнение {amount} ⭐",
                 "description": f"Пополнение баланса на {amount} звёзд в DC GalaxySpinBot",
                 "payload": payload,
@@ -34,4 +33,4 @@ async def create_invoice(body: dict, user: dict = Depends(get_current_user)):
     if not data.get("ok"):
         raise HTTPException(status_code=502, detail=data.get("description", "Ошибка Telegram API"))
 
-    return {"ok": True, "bot_username": BOT_USERNAME}
+    return {"ok": True, "invoice_link": data["result"]}
