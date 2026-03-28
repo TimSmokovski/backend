@@ -1,15 +1,33 @@
 import asyncio
+import os
+import httpx
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from database import init_db
-from routers import users, cases, pvp, games, social, admin, payments
+from routers import users, cases, pvp, games, social, admin, payments, telegram
 from routers.games import crash_loop
+
+BOT_TOKEN = os.getenv("BOT_TOKEN", "")
+BACKEND_URL = os.getenv("BACKEND_URL", "")
+
+
+async def _set_webhook():
+    if not BOT_TOKEN or not BACKEND_URL:
+        return
+    url = f"{BACKEND_URL.rstrip('/')}/telegram/webhook"
+    async with httpx.AsyncClient() as client:
+        r = await client.post(
+            f"https://api.telegram.org/bot{BOT_TOKEN}/setWebhook",
+            json={"url": url, "drop_pending_updates": True},
+        )
+        print(f"[webhook] {r.json()}")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_db()
+    await _set_webhook()
     task = asyncio.create_task(crash_loop())
     yield
     task.cancel()
@@ -35,6 +53,7 @@ app.include_router(games.router)
 app.include_router(social.router)
 app.include_router(admin.router)
 app.include_router(payments.router)
+app.include_router(telegram.router)
 
 
 @app.get("/")
