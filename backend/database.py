@@ -195,21 +195,36 @@ async def init_db():
             await db.commit()
 
         # Добавляем спец-задания если их ещё нет
-        cur = await db.execute("SELECT COUNT(*) FROM tasks WHERE type = 'channel_sub'")
-        if (await cur.fetchone())[0] == 0:
-            await db.execute(
-                "INSERT INTO tasks (name, icon, reward, url, type) VALUES (?, ?, ?, ?, ?)",
-                ("Подписаться на канал", "tg", 1, "https://t.me/example", "channel_sub"),
-            )
-            await db.commit()
+        # Деактивируем все обычные задания (не спец-типы)
+        await db.execute(
+            "UPDATE tasks SET active = 0 WHERE type IS NULL OR type = ''"
+        )
 
-        cur = await db.execute("SELECT COUNT(*) FROM tasks WHERE type = 'invite_friends'")
-        if (await cur.fetchone())[0] == 0:
+        # channel_sub — создаём или обновляем URL
+        cur = await db.execute("SELECT id FROM tasks WHERE type = 'channel_sub'")
+        if (await cur.fetchone()) is None:
             await db.execute(
                 "INSERT INTO tasks (name, icon, reward, url, type) VALUES (?, ?, ?, ?, ?)",
-                ("Пригласить 3 друзей", "invite", 3, None, "invite_friends"),
+                ("Подписаться на канал", "tg", 1, "https://t.me/xegqq", "channel_sub"),
             )
-            await db.commit()
+        else:
+            await db.execute(
+                "UPDATE tasks SET url = 'https://t.me/xegqq', active = 1 WHERE type = 'channel_sub'"
+            )
+
+        # invite_friends — создаём или обновляем награду
+        cur = await db.execute("SELECT id FROM tasks WHERE type = 'invite_friends'")
+        if (await cur.fetchone()) is None:
+            await db.execute(
+                "INSERT INTO tasks (name, icon, reward, url, type) VALUES (?, ?, ?, ?, ?)",
+                ("Пригласить 3 друзей", "invite", 10, None, "invite_friends"),
+            )
+        else:
+            await db.execute(
+                "UPDATE tasks SET reward = 10, active = 1 WHERE type = 'invite_friends'"
+            )
+
+        await db.commit()
 
         # Заполняем конкурсы
         cursor = await db.execute("SELECT COUNT(*) FROM contests")

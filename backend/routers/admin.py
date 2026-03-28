@@ -40,13 +40,13 @@ async def list_users(q: str = "", _admin: dict = Depends(require_admin)):
             cur = await db.execute(
                 "SELECT id, name, username, balance, banned, COALESCE(demo_balance,0) as demo_balance FROM users "
                 "WHERE username LIKE ? OR name LIKE ? OR id = ? "
-                "ORDER BY balance DESC LIMIT 20",
+                "ORDER BY id DESC LIMIT 20",
                 (f"%{q}%", f"%{q}%", uid),
             )
         else:
             cur = await db.execute(
                 "SELECT id, name, username, balance, banned, COALESCE(demo_balance,0) as demo_balance FROM users "
-                "ORDER BY balance DESC LIMIT 50"
+                "ORDER BY id DESC LIMIT 50"
             )
         rows = await cur.fetchall()
     return [dict(r) for r in rows]
