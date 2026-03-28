@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from database import init_db
-from routers import users, cases, pvp, games, social, admin, payments, telegram
+from routers import users, cases, pvp, games, social, admin, payments, telegram, withdrawals
 from routers.games import crash_loop
 
 BOT_TOKEN = os.getenv("BOT_TOKEN", "")
@@ -54,6 +54,7 @@ app.include_router(social.router)
 app.include_router(admin.router)
 app.include_router(payments.router)
 app.include_router(telegram.router)
+app.include_router(withdrawals.router)
 
 
 @app.get("/")

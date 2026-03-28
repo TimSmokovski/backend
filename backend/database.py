@@ -126,6 +126,20 @@ async def init_db():
         """)
         await db.commit()
 
+        # Таблица заявок на вывод
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS withdrawals (
+                id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id     INTEGER NOT NULL,
+                amount      INTEGER NOT NULL,
+                ton_address TEXT NOT NULL,
+                status      TEXT DEFAULT 'pending',
+                fragment_response TEXT,
+                created_at  TEXT DEFAULT (datetime('now')),
+                updated_at  TEXT DEFAULT (datetime('now'))
+            )
+        """)
+
         # Миграция: добавляем photo_url если колонки ещё нет
         try:
             await db.execute("ALTER TABLE users ADD COLUMN photo_url TEXT")
