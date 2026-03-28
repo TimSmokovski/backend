@@ -133,6 +133,7 @@ function openChannel(url) {
 
 async function completeTask(taskId) {
   const btn = event?.target;
+  const origText = btn?.textContent || '';
   if (btn) { btn.disabled = true; btn.textContent = '...'; }
 
   // Для обычных заданий с url — сначала открываем ссылку
@@ -146,7 +147,7 @@ async function completeTask(taskId) {
   const res = await API.completeTask(taskId);
   if (!res || res.__error) {
     showToast('❌ ' + (res?.detail || 'Ошибка'));
-    if (btn) { btn.disabled = false; btn.textContent = 'Выполнить'; }
+    if (btn) { btn.disabled = false; btn.textContent = origText; }
     return;
   }
   window.appState.balance = res.new_balance;
