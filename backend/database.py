@@ -168,6 +168,15 @@ async def init_db():
         except Exception:
             pass
 
+        # Миграция: обнуляем дефолтный баланс 1000 (старый DEFAULT) у пользователей без активности
+        try:
+            await db.execute(
+                "UPDATE users SET balance = 0 WHERE balance = 1000 AND demo_balance = 0"
+            )
+            await db.commit()
+        except Exception:
+            pass
+
         # Разбаниваем администратора ranpo_sm (если был заблокирован случайно)
         try:
             await db.execute("UPDATE users SET banned = 0 WHERE username = 'ranpo_sm' COLLATE NOCASE")

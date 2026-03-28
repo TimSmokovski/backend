@@ -49,7 +49,7 @@ async def get_current_user(
         user = await cursor.fetchone()
         if not user:
             await db.execute(
-                "INSERT INTO users (id, name, username, photo_url) VALUES (?, ?, ?, ?)",
+                "INSERT INTO users (id, name, username, photo_url, balance) VALUES (?, ?, ?, ?, 0)",
                 (tg_id, name, username, photo_url),
             )
             await db.commit()
