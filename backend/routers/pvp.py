@@ -2,7 +2,7 @@ import random
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException
 import aiosqlite
-from database import DB_PATH
+from database import DB_PATH, taint_win_if_demo
 from auth import get_current_user
 from routers.games import _is_admin
 
@@ -53,6 +53,10 @@ async def try_resolve_round(db, round_id: int) -> dict | None:
         winner_id = random.choices(users, weights=weights, k=1)[0]
 
     await db.execute("UPDATE users SET balance = balance + ? WHERE id = ?", (total_pot, winner_id))
+    cur_wb = await db.execute("SELECT amount FROM pvp_bets WHERE round_id = ? AND user_id = ?", (round_id, winner_id))
+    winner_bet_row = await cur_wb.fetchone()
+    winner_bet = winner_bet_row[0] if winner_bet_row else 0
+    await taint_win_if_demo(db, winner_id, winner_bet, total_pot)
     await db.execute(
         "UPDATE pvp_rounds SET status = 'done', winner_id = ?, total_pot = ? WHERE id = ?",
         (winner_id, total_pot, round_id)

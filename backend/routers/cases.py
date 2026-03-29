@@ -2,7 +2,7 @@ import random
 from fastapi import APIRouter, Depends, HTTPException
 import aiosqlite
 from datetime import datetime, timedelta
-from database import DB_PATH
+from database import DB_PATH, taint_win_if_demo
 from auth import get_current_user
 from routers import games as _games
 
@@ -83,6 +83,7 @@ async def open_case(body: dict, user: dict = Depends(get_current_user)):
                 "UPDATE users SET balance = balance - ? + ? WHERE id = ?",
                 (cost, item["stars"], user["id"]),
             )
+            await taint_win_if_demo(db, user["id"], cost, item["stars"])
         # Сохраняем в историю если 100+ звёзд
         if item["stars"] >= 100:
             emoji = item.get("emoji", "⭐")

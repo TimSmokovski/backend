@@ -18,6 +18,25 @@ async def get_setting(key: str, default=None):
     return json.loads(row[0]) if row else default
 
 
+async def taint_win_if_demo(db, user_id: int, bet: int, won: int):
+    """Если ставка использовала демо-звёзды — выигрыш тоже помечается как демо."""
+    cur = await db.execute(
+        "SELECT balance, COALESCE(demo_balance,0) FROM users WHERE id = ?", (user_id,)
+    )
+    row = await cur.fetchone()
+    if not row or row[1] == 0:
+        return
+    new_balance, demo = row[0], row[1]
+    old_balance = new_balance + bet - won
+    real_before = old_balance - demo
+    if real_before < bet:
+        new_demo = demo + won
+    else:
+        new_demo = demo
+    new_demo = max(0, min(new_demo, new_balance))
+    await db.execute("UPDATE users SET demo_balance = ? WHERE id = ?", (new_demo, user_id))
+
+
 async def set_setting(key: str, value):
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute(

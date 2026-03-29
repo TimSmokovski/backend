@@ -4,7 +4,7 @@ import asyncio
 import os
 from fastapi import APIRouter, Depends, HTTPException
 import aiosqlite
-from database import DB_PATH, get_setting
+from database import DB_PATH, get_setting, taint_win_if_demo
 from auth import get_current_user
 
 _ADMIN_IDS = set(
@@ -63,6 +63,7 @@ async def deduct_and_add(user_id, deduct, add):
         )
         if cur.rowcount == 0:
             raise HTTPException(400, "Недостаточно звёзд")
+        await taint_win_if_demo(db, user_id, deduct, add)
         await db.commit()
         cur = await db.execute("SELECT balance FROM users WHERE id = ?", (user_id,))
         row = await cur.fetchone()
@@ -295,6 +296,7 @@ async def crash_cashout(user: dict = Depends(get_current_user)):
     p["cashout_mult"] = mult
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute("UPDATE users SET balance = balance + ? WHERE id = ?", (won, user["id"]))
+        await taint_win_if_demo(db, user["id"], p["bet"], won)
         await db.execute(
             "UPDATE crash_bets SET status = 'won', won_amount = ? "
             "WHERE user_id = ? AND round_id = ? AND status = 'active'",
