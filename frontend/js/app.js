@@ -3,7 +3,7 @@ window.appState = {
   id: null,
   name: 'Игрок',
   avatar: '?',
-  balance: 5000,
+  balance: 0,
 };
 
 // Init Telegram Web App
