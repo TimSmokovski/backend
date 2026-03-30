@@ -116,7 +116,7 @@
   <div id="admin-panel" style="display:none">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
       <h1>⚙️ Админ панель</h1>
-      <button class="secondary" style="padding:8px 14px;font-size:13px" onclick="window.location.href='index.html'">← В игру</button>
+      <button class="secondary" style="padding:8px 14px;font-size:13px" onclick="window.location.href='index.html?t=' + Date.now()">← В игру</button>
     </div>
     <div class="subtitle" id="admin-subtitle">DC_GalaxySpinBot</div>
 
@@ -355,6 +355,8 @@
         const card = document.getElementById(`user-${_myUserId}`);
         if (card) card.querySelector('.user-balance').textContent = '⭐ ' + _myBalance.toLocaleString('ru');
         toast(action === 'sub' ? '✅ Звёзды сняты' : '✅ Звёзды добавлены', '#27ae60');
+        // Принудительно обновляем баланс с сервера
+        setTimeout(loadMyBalance, 500);
       } else if (res?.__error) {
         // Перепроверяем — операция могла выполниться
         await loadMyBalance();
