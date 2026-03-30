@@ -249,12 +249,24 @@
     let _myUserId = null;
     let _myBalance = null;
 
+    // Получаем init_data: из Telegram или из URL параметра (для отладки)
+    function getInitData() {
+      // 1. Из Telegram WebApp
+      if (tg?.initData) return tg.initData;
+      // 2. Из URL параметра ?init_data=...
+      const urlParams = new URLSearchParams(window.location.search);
+      const fromUrl = urlParams.get('init_data');
+      if (fromUrl) return decodeURIComponent(fromUrl);
+      // 3. Пустая строка (ошибка авторизации)
+      return '';
+    }
+
     async function api(method, path, data = null) {
       const opts = {
         method,
         headers: {
           'Content-Type': 'application/json',
-          'X-Init-Data': tg?.initData || 'test_user',
+          'X-Init-Data': getInitData(),
         },
       };
       if (data) opts.body = JSON.stringify(data);
@@ -295,15 +307,19 @@
 
       if (tg) { tg.ready(); tg.expand(); tg.setHeaderColor('#0e0e1a'); tg.setBackgroundColor('#0e0e1a'); }
 
+      console.log('[admin] doLogin called, initData present:', !!getInitData());
+
       try {
         const check = await Promise.race([
           api('GET', '/admin/check'),
           new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 8000))
         ]);
 
+        console.log('[admin] check result:', check);
+
         if (!check || check.__error) {
           document.getElementById('login-screen').style.display = 'none';
-          document.getElementById('denied-msg').textContent = 'Эта страница только для администраторов';
+          document.getElementById('denied-msg').textContent = `Эта страница только для администраторов. Ошибка: ${check?.detail || 'Нет соединения'}`;
           document.getElementById('access-denied').style.display = 'block';
           return;
         }
@@ -320,10 +336,11 @@
         loadChannelTask();
 
       } catch(e) {
+        console.error('[admin] doLogin error:', e);
         document.getElementById('login-screen').style.display = 'none';
         const msg = e.message === 'timeout'
-          ? 'Сервер не отвечает — попробуй позже'
-          : 'Ошибка соединения';
+          ? 'Сервер не отвечает — проверь интернет или backend'
+          : `Ошибка соединения: ${e.message}`;
         document.getElementById('denied-msg').textContent = msg;
         document.getElementById('access-denied').style.display = 'block';
       }
