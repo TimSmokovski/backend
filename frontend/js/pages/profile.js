@@ -116,7 +116,9 @@ async function renderProfilePage() {
 
 function openAdminPanel() {
   const base = window.location.href.replace(/\/[^/]*$/, '');
-  window.location.href = base + '/admin.html';
+  // Передаём initData для авторизации в админке
+  const initData = encodeURIComponent(window.Telegram?.WebApp?.initData || '');
+  window.location.href = `${base}/admin.html?init_data=${initData}`;
 }
 
 function doInvite() {
