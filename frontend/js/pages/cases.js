@@ -1186,63 +1186,91 @@ function _minerStart() {
   if (bet < 10) return showToast('Минимальная ставка — 10 звёзд');
   if (bet > (window.appState?.balance ?? 0)) return showToast('Недостаточно звёзд');
 
-  if (window.appState) window.appState.balance -= bet;
-  updateBalance();
-
-  _ms = { bet, mines, found: 0, mult: 1.0, active: true,
-          cells: new Array(MINER_CELLS).fill(null) };
-  _minerRender();
+  // Запрашиваем сервер на создание игры
+  API.minerStart(bet, mines).then(res => {
+    if (!res || res.__error) {
+      showToast(res?.detail || 'Ошибка соединения');
+      return;
+    }
+    // Обновляем баланс
+    if (window.appState) window.appState.balance = res.new_balance;
+    updateBalance();
+    // Создаём локальное состояние игры
+    _ms = { 
+      bet, mines, found: 0, mult: 1.0, active: true,
+      cells: new Array(MINER_CELLS).fill(null),
+      game_id: res.game_id,
+    };
+    _minerRender();
+  }).catch(err => {
+    console.error('Miner start error:', err);
+    showToast('Ошибка сервера');
+  });
 }
 
 function _minerClick(i) {
-  if (!_ms?.active || _ms.cells[i] !== null) return;
-  const left = MINER_CELLS - _ms.found;
-  const _luckRaw = window.appState?.isAdmin ? localStorage.getItem('admin_luck_override') : null;
-  const _pM = parseInt(_luckRaw);
-  const luck = _luckRaw !== null ? Math.max(0, Math.min(100, isNaN(_pM) ? 50 : _pM)) : 50;
-  // luck=30 → 30% шанс безопасно, 70% мина (единая логика с рулеткой/слотами)
-  const p = 1 - (luck / 100);
-
-  if (Math.random() < p) {
-    // МИНА
-    _ms.cells[i] = 'mine';
-    _ms.active = false;
-    _ms.cells = _ms.cells.map(c => c === null ? 'ghost' : c);
-    _minerRender();
-    if (window.Telegram?.WebApp?.HapticFeedback)
-      window.Telegram.WebApp.HapticFeedback.notificationOccurred('error');
-    setTimeout(() => showToast(`💥 Подорвался! −${_ms.bet.toLocaleString()} ⭐`), 120);
-  } else {
-    // БЕЗОПАСНО
-    _ms.cells[i] = 'safe';
-    _ms.found++;
-    const stepMult = (left / (left - _ms.mines)) * MINER_CUT;
-    _ms.mult *= stepMult;
-
-    const maxSafe = MINER_CELLS - _ms.mines;
-    if (_ms.found >= maxSafe) {
+  if (!_ms?.active || !_ms.game_id || _ms.cells[i] !== null) return;
+  
+  // Отправляем клик на сервер
+  API.minerClick(_ms.game_id, i).then(res => {
+    if (!res || res.__error) {
+      showToast(res?.detail || 'Ошибка соединения');
+      return;
+    }
+    
+    if (res.result === 'safe') {
+      // Безопасно - обновляем состояние
+      _ms.cells[i] = 'safe';
+      _ms.found++;
+      _ms.mult = res.mult;
+      _minerRender();
+    } else if (res.result === 'win') {
+      // Все мины найдены - победа
+      _ms.cells[i] = 'safe';
+      _ms.found++;
+      _ms.mult = res.mult;
       _ms.active = false;
-      const win = Math.floor(_ms.bet * _ms.mult);
-      if (window.appState) window.appState.balance += win;
+      if (window.appState) window.appState.balance = res.new_balance;
       updateBalance();
       _minerRender();
-      if (win >= 100) API.recordWin('💎', 'Сапёр', win);
-      showWin('💎', 'Все мины найдены!', `⭐ ${win.toLocaleString()}`);
-    } else {
+      if (res.won >= 100) API.recordWin('💎', 'Сапёр', res.won);
+      showWin('💎', 'Все мины найдены!', `⭐ ${res.won.toLocaleString()}`);
+    } else if (res.result === 'lose') {
+      // Мина - проигрыш
+      _ms.cells[i] = 'mine';
+      _ms.active = false;
+      // Открываем все мины
+      _ms.cells = _ms.cells.map(c => c === null ? 'ghost' : c);
       _minerRender();
+      if (window.Telegram?.WebApp?.HapticFeedback)
+        window.Telegram.WebApp.HapticFeedback.notificationOccurred('error');
+      setTimeout(() => showToast(`💥 Подорвался! −${_ms.bet.toLocaleString()} ⭐`), 120);
     }
-  }
+  }).catch(err => {
+    console.error('Miner click error:', err);
+    showToast('Ошибка сервера');
+  });
 }
 
 function _minerCashout() {
-  if (!_ms?.active || _ms.found === 0) return;
-  _ms.active = false;
-  const win = Math.floor(_ms.bet * _ms.mult);
-  if (window.appState) window.appState.balance += win;
-  updateBalance();
-  if (win >= 100) API.recordWin('💣', 'Сапёр', win);
-  _minerRender();
-  showWin('💰', 'Забрал выигрыш!', `⭐ ${win.toLocaleString()}`);
+  if (!_ms?.active || !_ms.game_id || _ms.found === 0) return;
+  
+  API.minerCashout(_ms.game_id).then(res => {
+    if (!res || res.__error) {
+      showToast(res?.detail || 'Ошибка соединения');
+      return;
+    }
+    
+    _ms.active = false;
+    if (window.appState) window.appState.balance = res.new_balance;
+    updateBalance();
+    if (res.won >= 100) API.recordWin('💣', 'Сапёр', res.won);
+    _minerRender();
+    showWin('💰', 'Забрал выигрыш!', `⭐ ${res.won.toLocaleString()}`);
+  }).catch(err => {
+    console.error('Miner cashout error:', err);
+    showToast('Ошибка сервера');
+  });
 }
 
 function _minerRender() {

@@ -2,6 +2,7 @@ import random
 import math
 import asyncio
 import os
+import uuid
 from fastapi import APIRouter, Depends, HTTPException
 import aiosqlite
 from database import DB_PATH, get_setting, taint_win_if_demo
@@ -16,6 +17,13 @@ _ADMIN_USERNAMES = set(
     for u in os.getenv("ADMIN_USERNAMES", "").split(",")
     if u.strip()
 )
+
+# ===== MINER GAME STATE =====
+# Храним состояние игр в памяти (для простоты)
+_miner_games = {}  # game_id -> {user_id, bet, mines, found, mult, cells}
+MINER_CELLS = 12
+MINER_HOUSE = 1.10  # накрутка вероятности мины (+10%)
+MINER_CUT = 0.93    # выплата 93% от честного за каждый шаг
 
 
 def _is_admin(user: dict) -> bool:
@@ -319,3 +327,169 @@ async def upgrade_item(body: dict, user: dict = Depends(get_current_user)):
     won = to_stars if success else 0
     new_balance = await deduct_and_add(user["id"], from_stars, won)
     return {"success": success, "chance": chance, "new_balance": new_balance}
+
+
+# ===== MINER (САПЁР) =====
+
+@router.post("/miner/start")
+async def miner_start(body: dict, user: dict = Depends(get_current_user)):
+    """Начать игру в сапёр. Списывает ставку и создаёт игру."""
+    bet = int(body.get("bet", 100))
+    mines = int(body.get("mines", 3))
+    
+    if bet < 10:
+        raise HTTPException(status_code=400, detail="Минимальная ставка — 10 звёзд")
+    if mines < 1 or mines > 6:
+        raise HTTPException(status_code=400, detail="Мины: от 1 до 6")
+    if user["balance"] < bet:
+        raise HTTPException(status_code=400, detail="Недостаточно звёзд")
+    
+    # Списываем ставку
+    async with aiosqlite.connect(DB_PATH) as db:
+        cur = await db.execute(
+            "UPDATE users SET balance = balance - ? WHERE id = ? AND balance >= ?",
+            (bet, user["id"], bet),
+        )
+        if cur.rowcount == 0:
+            raise HTTPException(status_code=400, detail="Недостаточно звёзд")
+        await db.commit()
+        cur = await db.execute("SELECT balance FROM users WHERE id = ?", (user["id"],))
+        row = await cur.fetchone()
+    
+    # Создаём игру
+    game_id = str(uuid.uuid4())
+    _miner_games[game_id] = {
+        "user_id": user["id"],
+        "bet": bet,
+        "mines": mines,
+        "found": 0,
+        "mult": 1.0,
+        "cells": [None] * MINER_CELLS,  # None = не открыта, 'safe' = безопасно, 'mine' = мина
+        "active": True,
+    }
+    
+    return {"ok": True, "game_id": game_id, "new_balance": row[0]}
+
+
+@router.post("/miner/click")
+async def miner_click(body: dict, user: dict = Depends(get_current_user)):
+    """Кликнуть по ячейке в сапёре."""
+    game_id = body.get("game_id")
+    cell_index = int(body.get("cell_index", 0))
+    
+    if not game_id or game_id not in _miner_games:
+        raise HTTPException(status_code=404, detail="Игра не найдена")
+    
+    game = _miner_games[game_id]
+    if game["user_id"] != user["id"]:
+        raise HTTPException(status_code=403, detail="Не ваша игра")
+    if not game["active"]:
+        raise HTTPException(status_code=400, detail="Игра уже завершена")
+    if cell_index < 0 or cell_index >= MINER_CELLS:
+        raise HTTPException(status_code=400, detail="Неверная ячейка")
+    if game["cells"][cell_index] is not None:
+        raise HTTPException(status_code=400, detail="Ячейка уже открыта")
+    
+    # Получаем удачу админа если есть
+    luck = body.get("luck", -1)
+    if isinstance(luck, (int, float)) and 0 <= luck <= 100 and _is_admin(user):
+        luck_chance = int(luck)
+    else:
+        luck_chance = 50  # по умолчанию 50%
+    
+    # Определяем результат
+    # luck=50 → 50% шанс безопасно, 50% мина
+    safe_chance = luck_chance / 100
+    
+    if random.random() < safe_chance:
+        # БЕЗОПАСНО
+        game["cells"][cell_index] = "safe"
+        game["found"] += 1
+        
+        # Считаем множитель
+        left = MINER_CELLS - game["found"]
+        step_mult = (left / (left - game["mines"])) * MINER_CUT
+        game["mult"] *= step_mult
+        
+        max_safe = MINER_CELLS - game["mines"]
+        if game["found"] >= max_safe:
+            # Все мины найдены — автовыигрыш
+            game["active"] = False
+            won = int(game["bet"] * game["mult"])
+            async with aiosqlite.connect(DB_PATH) as db:
+                await db.execute(
+                    "UPDATE users SET balance = balance + ? WHERE id = ?",
+                    (won, user["id"]),
+                )
+                await taint_win_if_demo(db, user["id"], game["bet"], won)
+                await db.commit()
+                cur = await db.execute("SELECT balance FROM users WHERE id = ?", (user["id"],))
+                row = await cur.fetchone()
+            return {
+                "ok": True,
+                "result": "win",
+                "cell": "safe",
+                "mult": round(game["mult"], 2),
+                "won": won,
+                "new_balance": row[0],
+            }
+        
+        return {
+            "ok": True,
+            "result": "safe",
+            "cell": "safe",
+            "mult": round(game["mult"], 2),
+            "potential": int(game["bet"] * game["mult"]),
+        }
+    else:
+        # МИНА
+        game["cells"][cell_index] = "mine"
+        game["active"] = False
+        # Открываем все мины
+        for i in range(MINER_CELLS):
+            if game["cells"][i] is None:
+                game["cells"][i] = "ghost"
+        
+        return {
+            "ok": True,
+            "result": "lose",
+            "cell": "mine",
+            "lost": game["bet"],
+        }
+
+
+@router.post("/miner/cashout")
+async def miner_cashout(body: dict, user: dict = Depends(get_current_user)):
+    """Забрать выигрыш в сапёре."""
+    game_id = body.get("game_id")
+    
+    if not game_id or game_id not in _miner_games:
+        raise HTTPException(status_code=404, detail="Игра не найдена")
+    
+    game = _miner_games[game_id]
+    if game["user_id"] != user["id"]:
+        raise HTTPException(status_code=403, detail="Не ваша игра")
+    if not game["active"]:
+        raise HTTPException(status_code=400, detail="Игра уже завершена")
+    if game["found"] == 0:
+        raise HTTPException(status_code=400, detail="Сначала откройте ячейку")
+    
+    game["active"] = False
+    won = int(game["bet"] * game["mult"])
+    
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            "UPDATE users SET balance = balance + ? WHERE id = ?",
+            (won, user["id"]),
+        )
+        await taint_win_if_demo(db, user["id"], game["bet"], won)
+        await db.commit()
+        cur = await db.execute("SELECT balance FROM users WHERE id = ?", (user["id"],))
+        row = await cur.fetchone()
+    
+    return {
+        "ok": True,
+        "won": won,
+        "mult": round(game["mult"], 2),
+        "new_balance": row[0],
+    }

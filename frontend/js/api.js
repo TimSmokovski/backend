@@ -75,6 +75,10 @@ const API = {
   createInvoice: (amount)       => apiCall('POST', '/payments/create_invoice', { amount }),
   requestWithdrawal: (amount, ton_address) => apiCall('POST', '/withdrawals/request', { amount, ton_address }),
   myWithdrawals: ()             => apiCall('GET', '/withdrawals/my'),
+  // Miner (Sapper)
+  minerStart: (bet, mines)      => apiCall('POST', '/miner/start', { bet, mines, ..._adminLuck() }),
+  minerClick: (game_id, cell_index) => apiCall('POST', '/miner/click', { game_id, cell_index, ..._adminLuck() }),
+  minerCashout: (game_id)       => apiCall('POST', '/miner/cashout', { game_id }),
 };
 
 // Мок-данные для локальной разработки (если API недоступен)
