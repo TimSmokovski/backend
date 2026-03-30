@@ -39,6 +39,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="DC_GalaxySpinBot API", version="1.0.0", lifespan=lifespan)
 
+# CORS middleware - разрешаем GitHub Pages и Telegram
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -46,6 +47,7 @@ app.add_middleware(
         "https://web.telegram.org",
         "https://t.me",
         "https://backend-production-128d.up.railway.app",
+        "http://localhost:3000",
     ],
     allow_methods=["*"],
     allow_headers=["*"],
