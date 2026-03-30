@@ -41,7 +41,12 @@ app = FastAPI(title="DC_GalaxySpinBot API", version="1.0.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "https://timsmokovski.github.io",
+        "https://web.telegram.org",
+        "https://t.me",
+        "https://backend-production-128d.up.railway.app",
+    ],
     allow_methods=["*"],
     allow_headers=["*"],
 )
