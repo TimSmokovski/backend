@@ -131,10 +131,15 @@ function openChannel(url) {
   }
 }
 
+let _taskCompleting = new Set();  // Debounce для задач
+
 async function completeTask(taskId) {
+  if (_taskCompleting.has(taskId)) return;  // Уже выполняется
+  
   const btn = event?.target;
   const origText = btn?.textContent || '';
   if (btn) { btn.disabled = true; btn.textContent = '...'; }
+  _taskCompleting.add(taskId);
 
   // Для обычных заданий с url — сначала открываем ссылку
   if (btn?.dataset?.url) {
@@ -145,6 +150,8 @@ async function completeTask(taskId) {
   }
 
   const res = await API.completeTask(taskId);
+  _taskCompleting.delete(taskId);
+  
   if (!res || res.__error) {
     showToast('❌ ' + (res?.detail || 'Ошибка'));
     if (btn) { btn.disabled = false; btn.textContent = origText; }
