@@ -541,7 +541,7 @@ function setRouletteBet(b) {
 
 function applyCustomBet() {
   const val = parseInt(document.getElementById('roulette-custom-input')?.value);
-  if (!val || val < 10) { showToast('Минимум 10 звёзд'); return; }
+  if (!val || isNaN(val) || val < 10) { showToast('Минимум 10 звёзд'); return; }
   if (window.appState && val > window.appState.balance) { showToast('Недостаточно звёзд'); return; }
   rouletteBet = val;
   document.querySelectorAll('.pvp-bet-btn[data-rbet]').forEach(btn => {
@@ -552,6 +552,7 @@ function applyCustomBet() {
 }
 
 async function spinRoulette() {
+  if (!rouletteBet || isNaN(rouletteBet) || rouletteBet < 10) { showToast('Некорректная ставка'); return; }
   if (window.appState && window.appState.balance < rouletteBet) {
     showToast('Недостаточно звёзд!');
     return;

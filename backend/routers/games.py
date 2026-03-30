@@ -21,9 +21,21 @@ _ADMIN_USERNAMES = set(
 # ===== MINER GAME STATE =====
 # Храним состояние игр в памяти (для простоты)
 _miner_games = {}  # game_id -> {user_id, bet, mines, found, mult, cells}
+_miner_game_timestamps = {}  # game_id -> timestamp для очистки старых игр
 MINER_CELLS = 12
 MINER_HOUSE = 1.10  # накрутка вероятности мины (+10%)
 MINER_CUT = 0.93    # выплата 93% от честного за каждый шаг
+MINER_GAME_TTL = 3600  # Время жизни игры в секундах (1 час)
+
+
+def _cleanup_old_miner_games():
+    """Очищает старые игры сапёра для предотвращения утечки памяти."""
+    import time
+    now = time.time()
+    expired = [gid for gid, ts in _miner_game_timestamps.items() if now - ts > MINER_GAME_TTL]
+    for gid in expired:
+        _miner_games.pop(gid, None)
+        _miner_game_timestamps.pop(gid, None)
 
 
 def _is_admin(user: dict) -> bool:
@@ -334,6 +346,9 @@ async def upgrade_item(body: dict, user: dict = Depends(get_current_user)):
 @router.post("/miner/start")
 async def miner_start(body: dict, user: dict = Depends(get_current_user)):
     """Начать игру в сапёр. Списывает ставку и создаёт игру."""
+    import time
+    _cleanup_old_miner_games()  # Очищаем старые игры
+    
     bet = int(body.get("bet", 100))
     mines = int(body.get("mines", 3))
     
@@ -367,6 +382,7 @@ async def miner_start(body: dict, user: dict = Depends(get_current_user)):
         "cells": [None] * MINER_CELLS,  # None = не открыта, 'safe' = безопасно, 'mine' = мина
         "active": True,
     }
+    _miner_game_timestamps[game_id] = time.time()
     
     return {"ok": True, "game_id": game_id, "new_balance": row[0]}
 

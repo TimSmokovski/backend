@@ -24,63 +24,59 @@ async def get_or_create_active_round(db) -> int:
     return cur.lastrowid
 
 
+_pvp_round_lock = asyncio.Lock()  # Блокировка для предотвращения гонки при разрешении раунда
+
+
 async def try_resolve_round(db, round_id: int) -> dict | None:
     """Разыгрывает раунд если нужно. Возвращает результат или None."""
-    cur = await db.execute("SELECT user_id, amount FROM pvp_bets WHERE round_id = ?", (round_id,))
-    bets = await cur.fetchall()
-    if len(bets) < 2:
-        return None
+    async with _pvp_round_lock:  # Блокировка от гонки данных
+        cur = await db.execute("SELECT user_id, amount FROM pvp_bets WHERE round_id = ?", (round_id,))
+        bets = await cur.fetchall()
+        if len(bets) < 2:
+            return None
 
-    total_pot = sum(b[1] for b in bets)
-    users = [b[0] for b in bets]
-    weights = [b[1] for b in bets]
-    luck_info = _pvp_luck.pop(round_id, None)
-    if luck_info and luck_info["user_id"] in users:
-        admin_uid = luck_info["user_id"]
-        luck = luck_info["luck"]
-        if luck >= 100:
-            winner_id = admin_uid
-        elif luck <= 0:
-            others = [u for u in users if u != admin_uid]
-            if others:
-                other_weights = [weights[i] for i, u in enumerate(users) if u != admin_uid]
-                winner_id = random.choices(others, weights=other_weights, k=1)[0]
+        total_pot = sum(b[1] for b in bets)
+        users = [b[0] for b in bets]
+        weights = [b[1] for b in bets]
+        luck_info = _pvp_luck.pop(round_id, None)
+        if luck_info and luck_info["user_id"] in users:
+            admin_uid = luck_info["user_id"]
+            luck = luck_info["luck"]
+            if luck >= 100:
+                winner_id = admin_uid
+            elif luck <= 0:
+                others = [u for u in users if u != admin_uid]
+                if others:
+                    other_weights = [weights[i] for i, u in enumerate(users) if u != admin_uid]
+                    winner_id = random.choices(others, weights=other_weights, k=1)[0]
+                else:
+                    winner_id = random.choices(users, weights=weights, k=1)[0]
             else:
                 winner_id = random.choices(users, weights=weights, k=1)[0]
         else:
             winner_id = random.choices(users, weights=weights, k=1)[0]
-    else:
-        winner_id = random.choices(users, weights=weights, k=1)[0]
 
-    await db.execute("UPDATE users SET balance = balance + ? WHERE id = ?", (total_pot, winner_id))
-    cur_wb = await db.execute("SELECT amount FROM pvp_bets WHERE round_id = ? AND user_id = ?", (round_id, winner_id))
-    winner_bet_row = await cur_wb.fetchone()
-    winner_bet = winner_bet_row[0] if winner_bet_row else 0
-    await taint_win_if_demo(db, winner_id, winner_bet, total_pot)
-    await db.execute(
-        "UPDATE pvp_rounds SET status = 'done', winner_id = ?, total_pot = ? WHERE id = ?",
-        (winner_id, total_pot, round_id)
-    )
-    await db.execute("INSERT INTO pvp_rounds (status) VALUES ('active')")
-    await db.commit()
+        await db.execute("UPDATE users SET balance = balance + ? WHERE id = ?", (total_pot, winner_id))
+        cur_wb = await db.execute("SELECT amount FROM pvp_bets WHERE round_id = ? AND user_id = ?", (round_id, winner_id))
+        winner_bet_row = await cur_wb.fetchone()
+        winner_bet = winner_bet_row[0] if winner_bet_row else 0
+        await taint_win_if_demo(db, winner_id, winner_bet, total_pot)
+        await db.execute(
+            "UPDATE pvp_rounds SET status = 'done', winner_id = ?, total_pot = ? WHERE id = ?",
+            (winner_id, total_pot, round_id)
+        )
+        await db.execute("INSERT INTO pvp_rounds (status) VALUES ('active')")
+        await db.commit()
 
-    cur = await db.execute("SELECT name FROM users WHERE id = ?", (winner_id,))
-    winner = await cur.fetchone()
-    return {"winner_id": winner_id, "winner_name": winner[0] or "Игрок", "total_pot": total_pot}
+        cur = await db.execute("SELECT name FROM users WHERE id = ?", (winner_id,))
+        winner = await cur.fetchone()
+        return {"winner_id": winner_id, "winner_name": winner[0] or "Игрок", "total_pot": total_pot}
 
 
 @router.get("/lobby")
 async def get_lobby():
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
-
-        # Добавляем колонку если не существует (миграция)
-        try:
-            await db.execute("ALTER TABLE pvp_rounds ADD COLUMN started_at TEXT")
-            await db.commit()
-        except Exception:
-            pass
-
         round_id = await get_or_create_active_round(db)
 
         cur = await db.execute("SELECT started_at FROM pvp_rounds WHERE id = ?", (round_id,))
@@ -105,7 +101,7 @@ async def get_lobby():
             elapsed = (datetime.now(timezone.utc) - started_dt.replace(tzinfo=timezone.utc)).total_seconds()
             time_left = max(0, ROUND_DURATION - int(elapsed))
 
-            if time_left == 0:
+            if time_left == 0 and player_count >= 2:
                 auto_resolved = await try_resolve_round(db, round_id)
                 if auto_resolved:
                     return {

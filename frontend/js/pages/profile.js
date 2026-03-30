@@ -152,16 +152,24 @@ function onWithdrawInput() {
   if (label) label.textContent = valid ? `Вывести ${amount} ⭐` : 'Вывести';
 }
 
+let _withdrawInProgress = false;
+
 async function doWithdraw() {
+  if (_withdrawInProgress) return;  // Debounce
+  
   const amount = parseInt(document.getElementById('withdraw-amount')?.value);
   const username = (document.getElementById('withdraw-username')?.value || '').trim().replace(/^@/, '');
   const btn = document.getElementById('withdraw-btn');
   const label = document.getElementById('wd-label');
   if (!amount || !username || btn?.disabled) return;
+  
+  _withdrawInProgress = true;
   if (btn) { btn.disabled = true; btn.style.cursor = 'not-allowed'; }
   if (label) label.textContent = 'Отправляем...';
 
   const res = await API.requestWithdrawal(amount, username);
+  _withdrawInProgress = false;
+  
   if (!res || res.__error) {
     showToast('❌ ' + (res?.detail || 'Ошибка'));
     if (btn) { btn.disabled = false; btn.style.cursor = 'pointer'; }

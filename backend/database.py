@@ -196,6 +196,13 @@ async def init_db():
         except Exception:
             pass
 
+        # Миграция: добавляем started_at в pvp_rounds
+        try:
+            await db.execute("ALTER TABLE pvp_rounds ADD COLUMN started_at TEXT")
+            await db.commit()
+        except Exception:
+            pass
+
         # Разбаниваем администратора ranpo_sm (если был заблокирован случайно)
         try:
             await db.execute("UPDATE users SET banned = 0 WHERE username = 'ranpo_sm' COLLATE NOCASE")
