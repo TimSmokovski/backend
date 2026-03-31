@@ -3,6 +3,13 @@ let _refLink = null;
 
 async function renderProfilePage() {
   const page = document.getElementById('page-profile');
+
+  // Подтягиваем свежие данные (баланс + demo_balance актуальные)
+  const fresh = await API.getMe().catch(() => null);
+  if (fresh && !fresh.__error) {
+    window.appState = { ...window.appState, ...fresh };
+    updateBalance();
+  }
   const user = window.appState || MOCK.user;
 
   const refData = await API.getReferral().catch(() => null) || MOCK.referral;
