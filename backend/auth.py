@@ -1,11 +1,14 @@
 import hashlib
 import hmac
 import json
+import time
 from urllib.parse import unquote
 from fastapi import Header, HTTPException, Depends
 import aiosqlite
 from database import DB_PATH
 import os
+
+AUTH_DATE_TTL = 86400  # init_data действителен 24 часа
 
 BOT_TOKEN = os.getenv("BOT_TOKEN", "")
 
@@ -25,6 +28,9 @@ def verify_init_data(init_data: str) -> dict:
         expected = hmac.new(secret, data_check.encode(), hashlib.sha256).hexdigest()
         if expected != parsed.get("hash"):
             raise HTTPException(status_code=403, detail="Invalid init data")
+        auth_date = int(parsed.get("auth_date", 0))
+        if auth_date and time.time() - auth_date > AUTH_DATE_TTL:
+            raise HTTPException(status_code=403, detail="Сессия устарела — перезапусти приложение")
         return json.loads(parsed.get("user", "{}"))
     except HTTPException:
         raise

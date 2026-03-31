@@ -112,21 +112,7 @@ async def reject_withdrawal(wid: int, _admin: dict = Depends(require_admin)):
         if w["status"] != "pending":
             raise HTTPException(400, f"Статус уже: {w['status']}")
         
-        # Возвращаем баланс с учётом demo_balance
-        cur_user = await db.execute(
-            "SELECT COALESCE(demo_balance, 0) FROM users WHERE id = ?", (w["user_id"],)
-        )
-        demo_row = await cur_user.fetchone()
-        demo_balance = demo_row[0] if demo_row else 0
-        
-        # Если у пользователя есть demo_balance, уменьшаем его первым
-        if demo_balance > 0:
-            reduce_demo = min(demo_balance, w["amount"])
-            await db.execute(
-                "UPDATE users SET demo_balance = demo_balance - ? WHERE id = ?",
-                (reduce_demo, w["user_id"]),
-            )
-        
+        # Возвращаем только реальный баланс — при запросе вывода demo_balance не трогался
         await db.execute(
             "UPDATE users SET balance = balance + ? WHERE id = ?", (w["amount"], w["user_id"])
         )

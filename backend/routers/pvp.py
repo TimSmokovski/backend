@@ -31,6 +31,12 @@ _pvp_round_lock = asyncio.Lock()  # Блокировка для предотвр
 async def try_resolve_round(db, round_id: int) -> dict | None:
     """Разыгрывает раунд если нужно. Возвращает результат или None."""
     async with _pvp_round_lock:  # Блокировка от гонки данных
+        # Проверяем что раунд ещё активен — защита от двойной раздачи
+        cur = await db.execute("SELECT status FROM pvp_rounds WHERE id = ?", (round_id,))
+        status_row = await cur.fetchone()
+        if not status_row or status_row[0] != "active":
+            return None
+
         cur = await db.execute("SELECT user_id, amount FROM pvp_bets WHERE round_id = ?", (round_id,))
         bets = await cur.fetchall()
         if len(bets) < 2:

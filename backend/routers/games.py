@@ -162,6 +162,8 @@ _crash = {
     "players": {},        # str(uid) -> {name, bet, cashed_out, cashout_mult}
     "round_id": 0,
 }
+_crash_bet_lock = asyncio.Lock()  # защита от двойной ставки в краше
+MAX_CRASH_POINT = 25.0            # максимальный множитель краша
 
 
 def _gen_crash(chance=None):
@@ -180,7 +182,7 @@ def _gen_crash(chance=None):
     lam = max(0.3, 3.5 * (1 - c / 100) + 0.3)
     val = 1.10 + random.expovariate(lam)
     val += random.uniform(-0.03, 0.03)
-    return max(1.10, round(val, 2))
+    return min(MAX_CRASH_POINT, max(1.10, round(val, 2)))
 
 
 async def crash_loop():
@@ -268,35 +270,36 @@ async def crash_get_state():
 
 @router.post("/crash/bet")
 async def crash_bet(body: dict, user: dict = Depends(get_current_user)):
-    if _crash["phase"] != "waiting":
-        raise HTTPException(400, "Набор закрыт — ждите следующего раунда")
-    uid = str(user["id"])
-    if uid in _crash["players"]:
-        raise HTTPException(400, "Вы уже в этом раунде")
-    bet = max(10, int(body.get("amount", 100)))
-    luck = body.get("luck", -1)
-    if isinstance(luck, (int, float)) and 0 <= luck <= 100 and _is_admin(user):
-        _crash["crash_point"] = _gen_crash(int(luck))
-    async with aiosqlite.connect(DB_PATH) as db:
-        cur = await db.execute(
-            "UPDATE users SET balance = balance - ? WHERE id = ? AND balance >= ?",
-            (bet, user["id"], bet),
-        )
-        if cur.rowcount == 0:
-            raise HTTPException(400, "Недостаточно звёзд")
-        await db.execute(
-            "INSERT INTO crash_bets (user_id, amount, round_id) VALUES (?, ?, ?)",
-            (user["id"], bet, _crash["round_id"]),
-        )
-        await db.commit()
-        cur = await db.execute("SELECT balance FROM users WHERE id = ?", (user["id"],))
-        row = await cur.fetchone()
-    _crash["players"][uid] = {
-        "name": user.get("name", "Игрок"),
-        "bet": bet,
-        "cashed_out": False,
-        "cashout_mult": None,
-    }
+    async with _crash_bet_lock:
+        if _crash["phase"] != "waiting":
+            raise HTTPException(400, "Набор закрыт — ждите следующего раунда")
+        uid = str(user["id"])
+        if uid in _crash["players"]:
+            raise HTTPException(400, "Вы уже в этом раунде")
+        bet = max(10, int(body.get("amount", 100)))
+        luck = body.get("luck", -1)
+        if isinstance(luck, (int, float)) and 0 <= luck <= 100 and _is_admin(user):
+            _crash["crash_point"] = _gen_crash(int(luck))
+        async with aiosqlite.connect(DB_PATH) as db:
+            cur = await db.execute(
+                "UPDATE users SET balance = balance - ? WHERE id = ? AND balance >= ?",
+                (bet, user["id"], bet),
+            )
+            if cur.rowcount == 0:
+                raise HTTPException(400, "Недостаточно звёзд")
+            await db.execute(
+                "INSERT INTO crash_bets (user_id, amount, round_id) VALUES (?, ?, ?)",
+                (user["id"], bet, _crash["round_id"]),
+            )
+            await db.commit()
+            cur = await db.execute("SELECT balance FROM users WHERE id = ?", (user["id"],))
+            row = await cur.fetchone()
+        _crash["players"][uid] = {
+            "name": user.get("name", "Игрок"),
+            "bet": bet,
+            "cashed_out": False,
+            "cashout_mult": None,
+        }
     return {"ok": True, "bet": bet, "new_balance": row[0]}
 
 
@@ -411,16 +414,20 @@ async def miner_click(body: dict, user: dict = Depends(get_current_user)):
     if game["cells"][cell_index] is not None:
         raise HTTPException(status_code=400, detail="Ячейка уже открыта")
     
-    # Получаем удачу админа если есть
+    # Реалистичная вероятность: P(safe) = оставшиеся_безопасные / оставшиеся_ячейки
+    remaining_cells = MINER_CELLS - game["found"]
+    remaining_safe = (MINER_CELLS - game["mines"]) - game["found"]
+    base_chance = remaining_safe / remaining_cells  # честная вероятность
+
+    # Удача админа — смещает вероятность относительно базовой
     luck = body.get("luck", -1)
     if isinstance(luck, (int, float)) and 0 <= luck <= 100 and _is_admin(user):
-        luck_chance = int(luck)
+        # luck=50 → база, luck=100 → гарантия безопасно, luck=0 → гарантия мина
+        safe_chance = base_chance + (luck / 100 - 0.5) * 2 * (1 - base_chance) if luck >= 50 \
+            else base_chance * (luck / 50)
+        safe_chance = max(0.0, min(1.0, safe_chance))
     else:
-        luck_chance = 50  # по умолчанию 50%
-    
-    # Определяем результат
-    # luck=50 → 50% шанс безопасно, 50% мина
-    safe_chance = luck_chance / 100
+        safe_chance = base_chance
     
     if random.random() < safe_chance:
         # БЕЗОПАСНО
