@@ -170,7 +170,7 @@ def _gen_crash(chance=None):
     """Генерирует точку краша с учётом GLOBAL_WIN_CHANCE (0–100)."""
     c = GLOBAL_WIN_CHANCE if chance is None else chance
     if c >= 100:
-        return round(random.uniform(20.0, 100.0), 2)
+        return round(random.uniform(20.0, MAX_CRASH_POINT), 2)
     if c <= 0:
         return round(random.uniform(1.01, 1.05), 2)
     early_prob = 0.18 * (1 - c / 100)
@@ -228,7 +228,7 @@ async def crash_loop():
             if not _crash["extended"] and _crash["players"]:
                 all_out = all(v["cashed_out"] for v in _crash["players"].values())
                 if all_out:
-                    _crash["crash_point"] = round(mult * random.uniform(1.2, 4.0), 2)
+                    _crash["crash_point"] = min(MAX_CRASH_POINT, round(mult * random.uniform(1.2, 4.0), 2))
                     _crash["extended"] = True
 
             if mult >= _crash["crash_point"]:
