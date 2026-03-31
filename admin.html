@@ -249,36 +249,49 @@
     let _myUserId = null;
     let _myBalance = null;
 
-    // Получаем init_data: из Telegram или из URL параметра (для отладки)
+    // Получаем init_data: из Telegram или из URL hash (для отладки)
     function getInitData() {
       // 1. Из Telegram WebApp
-      if (tg?.initData) return tg.initData;
-      // 2. Из URL параметра ?init_data=...
-      const urlParams = new URLSearchParams(window.location.search);
-      const fromUrl = urlParams.get('init_data');
-      if (fromUrl) return decodeURIComponent(fromUrl);
+      if (tg?.initData) {
+        console.log('[admin] initData from Telegram, length:', tg.initData.length);
+        return tg.initData;
+      }
+      // 2. Из hash (#...) - без ограничений по длине
+      const hash = window.location.hash.slice(1); // убираем #
+      if (hash) {
+        console.log('[admin] initData from hash, length:', hash.length);
+        return decodeURIComponent(hash);
+      }
       // 3. Пустая строка (ошибка авторизации)
+      console.warn('[admin] No initData available!');
       return '';
     }
 
     async function api(method, path, data = null) {
+      const initData = getInitData();
+      console.log('[admin] api call:', method, path, 'initData length:', initData?.length || 0);
+      
       const opts = {
         method,
         headers: {
           'Content-Type': 'application/json',
-          'X-Init-Data': getInitData(),
+          'X-Init-Data': initData,
         },
       };
       if (data) opts.body = JSON.stringify(data);
       try {
+        console.log('[admin] fetching:', API_BASE + path);
         const res = await fetch(API_BASE + path, opts);
+        console.log('[admin] response status:', res.status);
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
           return { __error: true, status: res.status, detail: err.detail || 'Ошибка' };
         }
-        return await res.json();
+        const result = await res.json();
+        console.log('[admin] response:', result);
+        return result;
       } catch(e) {
-        console.error('[api] fetch error:', e);
+        console.error('[admin] fetch error:', e);
         return { __error: true, detail: 'Нет соединения', _exception: e?.message };
       }
     }
