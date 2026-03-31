@@ -359,7 +359,9 @@ async def miner_start(body: dict, user: dict = Depends(get_current_user)):
     if user["balance"] < bet:
         raise HTTPException(status_code=400, detail="Недостаточно звёзд")
     
-    # Списываем ставку
+    game_id = str(uuid.uuid4())
+
+    # Списываем ставку и записываем в БД атомарно
     async with aiosqlite.connect(DB_PATH) as db:
         cur = await db.execute(
             "UPDATE users SET balance = balance - ? WHERE id = ? AND balance >= ?",
@@ -367,12 +369,15 @@ async def miner_start(body: dict, user: dict = Depends(get_current_user)):
         )
         if cur.rowcount == 0:
             raise HTTPException(status_code=400, detail="Недостаточно звёзд")
+        await db.execute(
+            "INSERT INTO miner_bets (game_id, user_id, amount) VALUES (?, ?, ?)",
+            (game_id, user["id"], bet),
+        )
         await db.commit()
         cur = await db.execute("SELECT balance FROM users WHERE id = ?", (user["id"],))
         row = await cur.fetchone()
-    
+
     # Создаём игру
-    game_id = str(uuid.uuid4())
     _miner_games[game_id] = {
         "user_id": user["id"],
         "bet": bet,
@@ -383,7 +388,7 @@ async def miner_start(body: dict, user: dict = Depends(get_current_user)):
         "active": True,
     }
     _miner_game_timestamps[game_id] = time.time()
-    
+
     return {"ok": True, "game_id": game_id, "new_balance": row[0]}
 
 
@@ -438,6 +443,9 @@ async def miner_click(body: dict, user: dict = Depends(get_current_user)):
                     (won, user["id"]),
                 )
                 await taint_win_if_demo(db, user["id"], game["bet"], won)
+                await db.execute(
+                    "UPDATE miner_bets SET status = 'won' WHERE game_id = ?", (game_id,)
+                )
                 await db.commit()
                 cur = await db.execute("SELECT balance FROM users WHERE id = ?", (user["id"],))
                 row = await cur.fetchone()
@@ -465,7 +473,14 @@ async def miner_click(body: dict, user: dict = Depends(get_current_user)):
         for i in range(MINER_CELLS):
             if game["cells"][i] is None:
                 game["cells"][i] = "ghost"
-        
+
+        # Закрываем ставку в БД (ставка уже списана при старте, не возвращаем)
+        async with aiosqlite.connect(DB_PATH) as db:
+            await db.execute(
+                "UPDATE miner_bets SET status = 'lost' WHERE game_id = ?", (game_id,)
+            )
+            await db.commit()
+
         return {
             "ok": True,
             "result": "lose",
@@ -492,17 +507,20 @@ async def miner_cashout(body: dict, user: dict = Depends(get_current_user)):
     
     game["active"] = False
     won = int(game["bet"] * game["mult"])
-    
+
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute(
             "UPDATE users SET balance = balance + ? WHERE id = ?",
             (won, user["id"]),
         )
         await taint_win_if_demo(db, user["id"], game["bet"], won)
+        await db.execute(
+            "UPDATE miner_bets SET status = 'won' WHERE game_id = ?", (game_id,)
+        )
         await db.commit()
         cur = await db.execute("SELECT balance FROM users WHERE id = ?", (user["id"],))
         row = await cur.fetchone()
-    
+
     return {
         "ok": True,
         "won": won,

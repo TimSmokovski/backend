@@ -145,6 +145,19 @@ async def init_db():
         """)
         await db.commit()
 
+        # Таблица ставок сапёра (для рефанда при рестарте)
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS miner_bets (
+                id         INTEGER PRIMARY KEY AUTOINCREMENT,
+                game_id    TEXT NOT NULL UNIQUE,
+                user_id    INTEGER NOT NULL,
+                amount     INTEGER NOT NULL,
+                status     TEXT DEFAULT 'active',
+                created_at TEXT DEFAULT (datetime('now'))
+            )
+        """)
+        await db.commit()
+
         # Таблица заявок на вывод
         await db.execute("""
             CREATE TABLE IF NOT EXISTS withdrawals (
@@ -288,4 +301,18 @@ async def init_db():
                     (row[1], row[0]),
                 )
             await db.execute("UPDATE crash_bets SET status = 'refunded' WHERE status = 'active'")
+            await db.commit()
+
+        # Рефанд незавершённых ставок сапёра (сервер упал в середине игры)
+        cur = await db.execute(
+            "SELECT user_id, SUM(amount) as total FROM miner_bets WHERE status = 'active' GROUP BY user_id"
+        )
+        stuck_miner = await cur.fetchall()
+        if stuck_miner:
+            for row in stuck_miner:
+                await db.execute(
+                    "UPDATE users SET balance = balance + ? WHERE id = ?",
+                    (row[1], row[0]),
+                )
+            await db.execute("UPDATE miner_bets SET status = 'refunded' WHERE status = 'active'")
             await db.commit()
