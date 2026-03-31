@@ -426,17 +426,14 @@ async def miner_click(body: dict, user: dict = Depends(get_current_user)):
         # БЕЗОПАСНО
         game["cells"][cell_index] = "safe"
         game["found"] += 1
-        
-        # Считаем множитель
-        left = MINER_CELLS - game["found"]
-        step_mult = (left / (left - game["mines"])) * MINER_CUT
-        game["mult"] *= step_mult
-        
+
         max_safe = MINER_CELLS - game["mines"]
+
+        # Сначала проверяем auto-win — ПЕРЕД вычислением множителя,
+        # чтобы избежать деления на ноль (left - mines = 0 на последней ячейке)
         if game["found"] >= max_safe:
-            # Все мины найдены — автовыигрыш
             game["active"] = False
-            won = int(game["bet"] * game["mult"])
+            won = max(int(game["bet"] * game["mult"]), game["bet"])  # минимум возврат ставки
             async with aiosqlite.connect(DB_PATH) as db:
                 await db.execute(
                     "UPDATE users SET balance = balance + ? WHERE id = ?",
@@ -457,7 +454,14 @@ async def miner_click(body: dict, user: dict = Depends(get_current_user)):
                 "won": won,
                 "new_balance": row[0],
             }
-        
+
+        # Считаем множитель только если игра продолжается (left > mines гарантировано)
+        left = MINER_CELLS - game["found"]
+        denom = left - game["mines"]
+        if denom > 0:
+            step_mult = (left / denom) * MINER_CUT
+            game["mult"] *= step_mult
+
         return {
             "ok": True,
             "result": "safe",
