@@ -27,6 +27,12 @@ MINER_HOUSE = 1.10  # накрутка вероятности мины (+10%)
 MINER_CUT = 0.93    # выплата 93% от честного за каждый шаг
 MINER_GAME_TTL = 3600  # Время жизни игры в секундах (1 час)
 
+# ===== INDIVIDUAL RTP PENALTY =====
+_user_rtp_penalty: dict = {}  # user_id → штраф в пунктах (0..MAX_RTP_PENALTY)
+MAX_RTP_PENALTY = 20   # максимальное снижение шанса в пунктах
+PENALTY_ON_WIN  = 8    # прибавляется после победы
+PENALTY_ON_LOSS = 4    # убавляется после проигрыша
+
 
 def _cleanup_old_miner_games():
     """Очищает старые игры сапёра для предотвращения утечки памяти."""
@@ -40,6 +46,25 @@ def _cleanup_old_miner_games():
 
 def _is_admin(user: dict) -> bool:
     return user["id"] in _ADMIN_IDS or (user.get("username") or "").lstrip("@") in _ADMIN_USERNAMES
+
+
+def _get_effective_chance(user_id: int) -> int:
+    """Персональный шанс победы с учётом накопленного штрафа после побед."""
+    penalty = _user_rtp_penalty.get(user_id, 0)
+    return max(5, GLOBAL_WIN_CHANCE - penalty)
+
+
+def _update_rtp_penalty(user_id: int, won: bool) -> None:
+    """Обновляет штраф RTP: растёт после побед, восстанавливается после проигрышей."""
+    cur = _user_rtp_penalty.get(user_id, 0)
+    if won:
+        cur = min(MAX_RTP_PENALTY, cur + PENALTY_ON_WIN)
+    else:
+        cur = max(0, cur - PENALTY_ON_LOSS)
+    if cur:
+        _user_rtp_penalty[user_id] = cur
+    else:
+        _user_rtp_penalty.pop(user_id, None)
 
 router = APIRouter(tags=["games"])
 
@@ -98,13 +123,16 @@ async def roulette_spin(body: dict, user: dict = Depends(get_current_user)):
     if user["balance"] < bet:
         raise HTTPException(status_code=400, detail="Недостаточно звёзд")
     luck = body.get("luck", -1)
-    if isinstance(luck, (int, float)) and 0 <= luck <= 100 and _is_admin(user):
+    admin_override = isinstance(luck, (int, float)) and 0 <= luck <= 100 and _is_admin(user)
+    if admin_override:
         chance = int(luck)  # личная удача админа — перекрывает глобальные шансы
     else:
-        chance = GLOBAL_WIN_CHANCE
+        chance = _get_effective_chance(user["id"])
     secs, w = _chance_weights(chance)
     section = random.choices(secs, weights=w, k=1)[0]
     won = int(bet * section["mult"])
+    if not admin_override:
+        _update_rtp_penalty(user["id"], won > 0)
     new_balance = await deduct_and_add(user["id"], bet, won)
     return {"section": section, "bet": bet, "won": won, "new_balance": new_balance}
 
@@ -115,10 +143,11 @@ async def slots_spin(body: dict, user: dict = Depends(get_current_user)):
     if user["balance"] < bet:
         raise HTTPException(status_code=400, detail="Недостаточно звёзд")
     luck = body.get("luck", -1)
-    if isinstance(luck, (int, float)) and 0 <= luck <= 100 and _is_admin(user):
+    admin_override = isinstance(luck, (int, float)) and 0 <= luck <= 100 and _is_admin(user)
+    if admin_override:
         chance = int(luck)
     else:
-        chance = GLOBAL_WIN_CHANCE
+        chance = _get_effective_chance(user["id"])
 
     if chance >= 100:
         best = max(SLOT_EMOJIS, key=lambda e: SLOT_MULT.get(e, 1))
@@ -132,7 +161,7 @@ async def slots_spin(body: dict, user: dict = Depends(get_current_user)):
     else:
         r = random.random() * 100
         if r < chance:
-            if random.random() < chance / 100:
+            if random.random() < 0.08:  # фиксированные 8% побед → джекпот; было chance/100 (=9% при chance=30)
                 symbol = random.choice(SLOT_EMOJIS)
                 reels = [symbol, symbol, symbol]
                 won, result = bet * SLOT_MULT.get(symbol, 4), "jackpot"
@@ -146,6 +175,8 @@ async def slots_spin(body: dict, user: dict = Depends(get_current_user)):
             reels = random.sample(SLOT_EMOJIS, 3)
             won, result = 0, "lose"
 
+    if not admin_override:
+        _update_rtp_penalty(user["id"], won > 0)
     new_balance = await deduct_and_add(user["id"], bet, won)
     return {"reels": reels, "result": result, "won": won, "new_balance": new_balance}
 
@@ -237,6 +268,10 @@ async def crash_loop():
             await asyncio.sleep(0.07)
 
         _crash["phase"] = "crashed"
+        # Обновляем RTP-штраф только для проигравших (победители получили штраф в момент кэшаута)
+        for uid_str, pdata in _crash["players"].items():
+            if not pdata["cashed_out"]:
+                _update_rtp_penalty(int(uid_str), False)
         # Помечаем незакрытые ставки этого раунда как проигрыш
         async with aiosqlite.connect(DB_PATH) as db:
             await db.execute(
@@ -317,6 +352,7 @@ async def crash_cashout(user: dict = Depends(get_current_user)):
     won = int(p["bet"] * mult)
     p["cashed_out"] = True
     p["cashout_mult"] = mult
+    _update_rtp_penalty(user["id"], True)
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute("UPDATE users SET balance = balance + ? WHERE id = ?", (won, user["id"]))
         await taint_win_if_demo(db, user["id"], p["bet"], won)
@@ -331,15 +367,23 @@ async def crash_cashout(user: dict = Depends(get_current_user)):
     return {"ok": True, "won": won, "multiplier": mult, "new_balance": row[0]}
 
 
+_UPGRADE_VALID_STARS = {500, 800, 600, 950, 1257, 1361, 2404, 2814, 4653, 5009, 7500, 9999}
+
+
 @router.post("/upgrade")
 async def upgrade_item(body: dict, user: dict = Depends(get_current_user)):
     from_stars = int(body.get("from_stars", 500))
     to_stars   = int(body.get("to_stars", 2000))
+    if from_stars not in _UPGRADE_VALID_STARS or to_stars not in _UPGRADE_VALID_STARS:
+        raise HTTPException(status_code=400, detail="Недопустимые значения предметов")
+    if to_stars <= from_stars:
+        raise HTTPException(status_code=400, detail="Целевой предмет должен быть дороже исходного")
     if user["balance"] < from_stars:
         raise HTTPException(status_code=400, detail="Недостаточно звёзд")
     chance = max(5, min(90, int((from_stars / to_stars) * 100)))
     success = random.random() * 100 < chance
     won = to_stars if success else 0
+    _update_rtp_penalty(user["id"], success)
     new_balance = await deduct_and_add(user["id"], from_stars, won)
     return {"success": success, "chance": chance, "new_balance": new_balance}
 
@@ -427,8 +471,9 @@ async def miner_click(body: dict, user: dict = Depends(get_current_user)):
             else base_chance * (luck / 50)
         safe_chance = max(0.0, min(1.0, safe_chance))
     else:
-        safe_chance = base_chance
-    
+        # Применяем MINER_HOUSE: увеличиваем вероятность мины на 10%
+        safe_chance = max(0.0, 1.0 - (1.0 - base_chance) * MINER_HOUSE)
+
     if random.random() < safe_chance:
         # БЕЗОПАСНО
         game["cells"][cell_index] = "safe"
@@ -441,6 +486,7 @@ async def miner_click(body: dict, user: dict = Depends(get_current_user)):
         if game["found"] >= max_safe:
             game["active"] = False
             won = max(int(game["bet"] * game["mult"]), game["bet"])  # минимум возврат ставки
+            _update_rtp_penalty(user["id"], True)
             async with aiosqlite.connect(DB_PATH) as db:
                 await db.execute(
                     "UPDATE users SET balance = balance + ? WHERE id = ?",
@@ -485,6 +531,7 @@ async def miner_click(body: dict, user: dict = Depends(get_current_user)):
             if game["cells"][i] is None:
                 game["cells"][i] = "ghost"
 
+        _update_rtp_penalty(user["id"], False)
         # Закрываем ставку в БД (ставка уже списана при старте, не возвращаем)
         async with aiosqlite.connect(DB_PATH) as db:
             await db.execute(
@@ -518,6 +565,7 @@ async def miner_cashout(body: dict, user: dict = Depends(get_current_user)):
     
     game["active"] = False
     won = int(game["bet"] * game["mult"])
+    _update_rtp_penalty(user["id"], True)
 
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute(

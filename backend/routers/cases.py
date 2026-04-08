@@ -56,10 +56,11 @@ async def open_case(body: dict, user: dict = Depends(get_current_user)):
                     hours_left = int((next_at - datetime.utcnow()).seconds / 3600)
                     raise HTTPException(status_code=429, detail=f"Следующий кейс через {hours_left} ч.")
             luck = body.get("luck", -1)
-            if isinstance(luck, (int, float)) and 0 <= luck <= 100 and _games._is_admin(user):
+            admin_override = isinstance(luck, (int, float)) and 0 <= luck <= 100 and _games._is_admin(user)
+            if admin_override:
                 chance = int(luck)
             else:
-                chance = _games.GLOBAL_WIN_CHANCE
+                chance = _games._get_effective_chance(user["id"])
             if chance >= 100:
                 item = FREE_ITEMS[-1]
             elif chance <= 0:
@@ -70,15 +71,18 @@ async def open_case(body: dict, user: dict = Depends(get_current_user)):
                 all_items   = win_items + lose_items
                 all_weights = [i["weight"] * chance for i in win_items] + [i["weight"] * (100 - chance) for i in lose_items]
                 item = random.choices(all_items, weights=all_weights, k=1)[0]
+            if not admin_override:
+                _games._update_rtp_penalty(user["id"], item["stars"] > 0)
             await db.execute(
                 "UPDATE users SET balance = balance + ?, free_case_at = ? WHERE id = ?",
                 (item["stars"], datetime.utcnow().isoformat(), user["id"]),
             )
         else:
-            cost = int(body.get("cost", 100))
+            cost = 1000  # фиксированная стоимость платного кейса (EV ≈ 83% при cost=1000)
             if user["balance"] < cost:
                 raise HTTPException(status_code=400, detail="Недостаточно звёзд")
             item = weighted_choice(ITEMS)
+            _games._update_rtp_penalty(user["id"], item["stars"] > cost)
             await db.execute(
                 "UPDATE users SET balance = balance - ? + ? WHERE id = ?",
                 (cost, item["stars"], user["id"]),
