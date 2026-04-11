@@ -48,6 +48,8 @@ app.add_middleware(
         "https://t.me",
         "https://backend-production-128d.up.railway.app",
         "http://localhost:3000",
+        "http://localhost:5500",
+        "http://127.0.0.1:5500",
     ],
     allow_methods=["*"],
     allow_headers=["*"],

@@ -11,7 +11,7 @@ router = APIRouter(prefix="/pvp", tags=["pvp"])
 
 _pvp_luck = {}  # round_id -> {"user_id": int, "luck": int}
 
-ROUND_DURATION = 60  # 1 минута
+ROUND_DURATION = 20  # 20 секунд
 MAX_PLAYERS = 10
 
 
@@ -75,9 +75,18 @@ async def try_resolve_round(db, round_id: int) -> dict | None:
         await db.execute("INSERT INTO pvp_rounds (status) VALUES ('active')")
         await db.commit()
 
-        cur = await db.execute("SELECT name FROM users WHERE id = ?", (winner_id,))
+        cur = await db.execute("SELECT name, photo_url FROM users WHERE id = ?", (winner_id,))
         winner = await cur.fetchone()
-        return {"winner_id": winner_id, "winner_name": winner[0] or "Игрок", "total_pot": total_pot}
+        coefficient = round(total_pot / winner_bet, 2) if winner_bet > 0 else 1.0
+        chance = round(winner_bet / total_pot * 100, 1) if total_pot > 0 else 100.0
+        return {
+            "winner_id": winner_id,
+            "winner_name": winner[0] or "Игрок",
+            "winner_photo": winner[1],
+            "total_pot": total_pot,
+            "coefficient": coefficient,
+            "chance": chance,
+        }
 
 
 @router.get("/lobby")
@@ -91,7 +100,7 @@ async def get_lobby():
         started_at = round_row["started_at"] if round_row else None
 
         cur = await db.execute(
-            """SELECT b.user_id, b.amount, u.name
+            """SELECT b.user_id, b.amount, u.name, u.photo_url
                FROM pvp_bets b LEFT JOIN users u ON u.id = b.user_id
                WHERE b.round_id = ? ORDER BY b.amount DESC""",
             (round_id,)
@@ -124,6 +133,7 @@ async def get_lobby():
                 "user_id": b["user_id"],
                 "name": b["name"] or "Игрок",
                 "avatar": (b["name"] or "И")[0].upper(),
+                "photo_url": b["photo_url"],
                 "amount": b["amount"],
                 "chance": round(b["amount"] / total_pot * 100, 1) if total_pot > 0 else 0,
             }
@@ -156,9 +166,8 @@ async def place_bet(body: dict, user: dict = Depends(get_current_user)):
         cur = await db.execute("SELECT started_at FROM pvp_rounds WHERE id = ?", (round_id,))
         round_row = await cur.fetchone()
 
-        cur = await db.execute("SELECT id FROM pvp_bets WHERE round_id = ? AND user_id = ?", (round_id, user["id"]))
-        if await cur.fetchone():
-            raise HTTPException(status_code=400, detail="Ты уже поставил в этом раунде")
+        cur = await db.execute("SELECT id, amount FROM pvp_bets WHERE round_id = ? AND user_id = ?", (round_id, user["id"]))
+        existing_bet = await cur.fetchone()
 
         cur = await db.execute("SELECT COUNT(*) FROM pvp_bets WHERE round_id = ?", (round_id,))
         count = (await cur.fetchone())[0]
@@ -171,10 +180,14 @@ async def place_bet(body: dict, user: dict = Depends(get_current_user)):
         )
         if cur.rowcount == 0:
             raise HTTPException(status_code=400, detail="Недостаточно звёзд")
-        await db.execute("INSERT INTO pvp_bets (round_id, user_id, amount) VALUES (?, ?, ?)", (round_id, user["id"], amount))
+        if existing_bet:
+            await db.execute("UPDATE pvp_bets SET amount = amount + ? WHERE id = ?", (amount, existing_bet[0]))
+        else:
+            await db.execute("INSERT INTO pvp_bets (round_id, user_id, amount) VALUES (?, ?, ?)", (round_id, user["id"], amount))
 
-        # Если стало 2 игрока — запускаем таймер
-        if count + 1 == 2 and not round_row["started_at"]:
+        # Если стало 2 игрока — запускаем таймер (считаем уникальных игроков)
+        new_count = count if existing_bet else count + 1
+        if new_count == 2 and not round_row["started_at"]:
             now = datetime.now(timezone.utc).isoformat()
             await db.execute("UPDATE pvp_rounds SET started_at = ? WHERE id = ?", (now, round_id))
 
@@ -182,7 +195,7 @@ async def place_bet(body: dict, user: dict = Depends(get_current_user)):
 
         # Если 10 игроков — авторазыгрываем
         auto_resolved = None
-        if count + 1 >= MAX_PLAYERS:
+        if new_count >= MAX_PLAYERS:
             auto_resolved = await try_resolve_round(db, round_id)
 
         cur = await db.execute("SELECT balance FROM users WHERE id = ?", (user["id"],))

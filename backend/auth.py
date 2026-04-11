@@ -38,9 +38,24 @@ def verify_init_data(init_data: str) -> dict:
         raise HTTPException(status_code=400, detail="Bad init data")
 
 
+DEV_MODE = os.getenv("DEV_MODE", "false").lower() == "true"
+
+
 async def get_current_user(
     x_init_data: str = Header(default="", alias="X-Init-Data"),
 ) -> dict:
+    if DEV_MODE and not x_init_data:
+        async with aiosqlite.connect(DB_PATH) as db:
+            db.row_factory = aiosqlite.Row
+            await db.execute(
+                "INSERT OR IGNORE INTO users (id, name, username, photo_url, balance) VALUES (1, 'TestUser', 'testuser', NULL, 10000)"
+            )
+            # Если баланс меньше 10к — пополняем до 10к
+            await db.execute("UPDATE users SET balance = 10000 WHERE id = 1 AND balance < 10000")
+            await db.commit()
+            cur = await db.execute("SELECT * FROM users WHERE id = 1")
+            user = await cur.fetchone()
+        return dict(user)
     user_data = verify_init_data(x_init_data)
     tg_id = user_data.get("id")
     if not tg_id:
