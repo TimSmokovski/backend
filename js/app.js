@@ -112,6 +112,51 @@ function showWin(emoji, title, sub) {
   setTimeout(() => overlay.remove(), 5000);
 }
 
+// ===== PVP WIN SCREEN =====
+function showPvpWin(res, iWon) {
+  if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred(iWon ? 'success' : 'error');
+
+  const overlay = document.createElement('div');
+  overlay.className = 'win-overlay pvp-win-overlay';
+
+  const avatarHtml = res.winner_photo
+    ? `<img src="${res.winner_photo}" class="pvp-win-avatar" alt="">`
+    : `<div class="pvp-win-avatar pvp-win-avatar-letter">${(res.winner_name || 'И')[0].toUpperCase()}</div>`;
+
+  overlay.innerHTML = `
+    <div class="pvp-win-card">
+      ${iWon
+        ? `<div class="pvp-win-top-label">🏆 Ты победил!</div>`
+        : `<div class="pvp-win-top-label pvp-win-lose">💀 Победитель</div>`}
+      ${avatarHtml}
+      <div class="pvp-win-name">${res.winner_name}</div>
+      <div class="pvp-win-pot">${_goldStar(22)} ${res.total_pot.toLocaleString()}</div>
+      <div class="pvp-win-stats">
+        <div class="pvp-win-stat">
+          <div class="pvp-win-stat-val pvp-win-coeff">×${res.coefficient}</div>
+          <div class="pvp-win-stat-label">коэффициент</div>
+        </div>
+        <div class="pvp-win-stat">
+          <div class="pvp-win-stat-val">${res.chance}%</div>
+          <div class="pvp-win-stat-label">шанс победы</div>
+        </div>
+      </div>
+      <button class="win-close" onclick="this.closest('.win-overlay').remove()">${iWon ? 'Забрать' : 'Закрыть'}</button>
+    </div>`;
+
+  if (iWon) {
+    const colors = ['#f5c842','#4d6ef5','#e91e8c','#2ecc71','#e67e22','#9b59b6'];
+    for (let i = 0; i < 30; i++) {
+      const c = document.createElement('div');
+      c.className = 'confetti';
+      c.style.cssText = `left:${Math.random()*100}%;background:${colors[Math.floor(Math.random()*colors.length)]};animation-delay:${Math.random()*0.5}s;animation-duration:${1+Math.random()}s;width:${6+Math.random()*8}px;height:${6+Math.random()*8}px;`;
+      overlay.appendChild(c);
+    }
+  }
+
+  document.body.appendChild(overlay);
+}
+
 // ===== TOAST =====
 function showToast(msg) {
   const t = document.createElement('div');
@@ -249,6 +294,10 @@ async function confirmDeposit() {
 function updateBalance() {
   const el = document.getElementById('user-balance');
   if (el) el.textContent = (window.appState.balance || 0).toLocaleString();
+  // Обновляем баланс во всех открытых модалках
+  document.querySelectorAll('.modal-hdr-balance').forEach(e => {
+    e.textContent = (window.appState?.balance || 0).toLocaleString();
+  });
 }
 
 function _setTopbarAvatar() {

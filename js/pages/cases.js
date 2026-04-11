@@ -167,7 +167,14 @@ let pvpLocalTimeLeft = null;
 async function openPvp() {
   showModal(`
     <div class="modal-close-bar"><div class="modal-close-handle"></div></div>
-    <div class="pvp-title">⚔️ PvP Котёл</div>
+    <div class="pvp-header-row">
+      <div class="pvp-title" style="margin-bottom:0">⚔️ PvP Котёл</div>
+      <div class="pvp-deposit-btn" onclick="hideModal();showDepositModal()">
+        <img src="assets/tg_star.png" height="16" style="width:auto;filter:drop-shadow(0 0 5px #ffd700cc);flex-shrink:0">
+        <span class="modal-hdr-balance">${window.appState?.balance?.toLocaleString() ?? '...'}</span>
+        <span style="color:#f5c842;font-size:18px;font-weight:700;line-height:1;margin-left:1px">+</span>
+      </div>
+    </div>
     <div class="pvp-sub">Больше ставка — выше шанс победить</div>
     <div id="pvp-lobby-content">
       <div class="pvp-loading">Загрузка...</div>
@@ -187,9 +194,11 @@ function pvpTick() {
   const fillEl = document.querySelector('.pvp-timer-fill');
   const timerEl = document.querySelector('.pvp-timer');
   if (valEl) valEl.textContent = pvpFormatTime(pvpLocalTimeLeft);
-  if (fillEl) fillEl.style.width = `${(pvpLocalTimeLeft / 60) * 100}%`;
+  if (fillEl) fillEl.style.width = `${(pvpLocalTimeLeft / 20) * 100}%`;
+  const centerEl = document.getElementById('pvp-wheel-center');
+  if (centerEl) centerEl.textContent = pvpLocalTimeLeft > 0 ? pvpLocalTimeLeft : '🏆';
   if (timerEl) {
-    if (pvpLocalTimeLeft < 30) timerEl.classList.add('urgent');
+    if (pvpLocalTimeLeft < 10) timerEl.classList.add('urgent');
     else timerEl.classList.remove('urgent');
   }
 }
@@ -200,7 +209,7 @@ function pvpFormatTime(seconds) {
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
-function buildPvpWheel(players) {
+function buildPvpWheel(players, timeLeft) {
   let gradientParts = [];
   let cumulative = 0;
   if (players && players.length > 0) {
@@ -220,7 +229,7 @@ function buildPvpWheel(players) {
   return `
     <div class="pvp-wheel-wrap">
       <div class="pvp-wheel${gradientParts.length ? '' : ' pvp-wheel-empty'}"${style ? ` style="${style}"` : ''}></div>
-      <div class="pvp-wheel-center">🏆</div>
+      <div class="pvp-wheel-center" id="pvp-wheel-center">${timeLeft !== null && timeLeft !== undefined ? timeLeft : '🏆'}</div>
     </div>`;
 }
 
@@ -237,10 +246,16 @@ async function pvpRefreshLobby() {
   // Авторазыгрывание с сервера
   if (lobby.auto_resolved) {
     clearInterval(pvpRefreshTimer);
+    clearInterval(pvpTickTimer);
     const res = lobby.auto_resolved;
+    // Обновляем баланс если победили
+    if (res.winner_id == window.appState?.id) {
+      if (window.appState) window.appState.balance = (window.appState.balance || 0) + res.total_pot;
+      updateBalance();
+    }
     hideModal();
     const iWon = res.winner_id == window.appState?.id;
-    showWin(iWon ? '🏆' : '💀', iWon ? 'Ты победил!' : `Победил ${res.winner_name}`, `Котёл: ${_goldStar(20)} ${res.total_pot.toLocaleString()}`);
+    showPvpWin(res, iWon);
     return;
   }
 
@@ -259,12 +274,12 @@ async function pvpRefreshLobby() {
   // Статус таймера
   let timerHtml = '';
   if (timeLeft !== null && timeLeft !== undefined) {
-    const pct = (timeLeft / 60) * 100;
-    const urgent = timeLeft < 30;
+    const pct = (timeLeft / 20) * 100;
+    const urgent = timeLeft < 10;
     timerHtml = `
       <div class="pvp-timer ${urgent ? 'urgent' : ''}">
         <div class="pvp-timer-val">${pvpFormatTime(timeLeft)}</div>
-        <div class="pvp-timer-label">до начала битвы</div>
+        <div class="pvp-timer-label">до розыгрыша</div>
         <div class="pvp-timer-bar"><div class="pvp-timer-fill" style="width:${pct}%"></div></div>
       </div>`;
   } else if (playerCount < 2) {
@@ -278,7 +293,7 @@ async function pvpRefreshLobby() {
       <div class="pvp-cauldron-players">${playerCount} / ${lobby.max_players || 10} игроков</div>
     </div>
 
-    ${buildPvpWheel(lobby.players)}
+    ${buildPvpWheel(lobby.players, pvpLocalTimeLeft)}
 
     <div class="pvp-players-list">
       ${playerCount === 0
@@ -288,7 +303,10 @@ async function pvpRefreshLobby() {
             return `
               <div class="pvp-player-row ${p.user_id == myId ? 'me' : ''}" style="--player-color:${color}">
                 <div class="pvp-player-color-bar"></div>
-                <div class="pvp-room-avatar" style="background:linear-gradient(135deg,${color},${color}99)">${p.avatar}</div>
+                ${p.photo_url
+                  ? `<img class="pvp-room-avatar pvp-room-avatar-img" src="${p.photo_url}" alt="">`
+                  : `<div class="pvp-room-avatar" style="background:linear-gradient(135deg,${color},${color}99)">${p.avatar}</div>`
+                }
                 <div class="pvp-player-info">
                   <div class="pvp-room-name">${p.name}${p.user_id == myId ? ' <span class="pvp-me-tag">ты</span>' : ''}</div>
                   <div class="pvp-chance-bar-wrap">
@@ -319,7 +337,18 @@ async function pvpRefreshLobby() {
         `).join('')}
       </div>
     ` : `
-      <div class="pvp-already-bet">✅ Ты в игре! Ждём остальных...</div>
+      <div class="pvp-already-bet">✅ Ты в игре!</div>
+      <div class="pvp-bet-label" style="margin-top:10px">Докинуть звёзд</div>
+      <div class="pvp-bet-input-row">
+        <input class="pvp-bet-input" id="pvp-bet-input" type="number" min="10"
+          value="${pvpBetInput}" placeholder="Сумма" oninput="pvpBetInput=+this.value">
+        <button class="btn-pvp-create" onclick="doPvpBet()">Докинуть</button>
+      </div>
+      <div class="pvp-quick-bets">
+        ${[50,100,250,500,1000].map(b => `
+          <button class="pvp-bet-btn" onclick="pvpSetBet(${b})">${b}</button>
+        `).join('')}
+      </div>
     `}
   `;
 }
@@ -345,7 +374,7 @@ async function doPvpBetCheck(res) {
     const r = res.auto_resolved;
     hideModal();
     const iWon = r.winner_id == window.appState?.id;
-    showWin(iWon ? '🏆' : '💀', iWon ? 'Ты победил!' : `Победил ${r.winner_name}`, `Котёл: ${_goldStar(20)} ${r.total_pot.toLocaleString()}`);
+    showPvpWin(r, iWon);
     return;
   }
   if (window.appState) window.appState.balance = res.new_balance;
@@ -373,7 +402,14 @@ function openFreeCase() {
   const spinItems = [...FREE_ITEMS, ...FREE_ITEMS, ...FREE_ITEMS];
   showModal(`
     <div class="modal-close-bar"><div class="modal-close-handle"></div></div>
-    <div class="spin-title">🎁 Бесплатный кейс</div>
+    <div class="pvp-header-row">
+      <div class="spin-title" style="margin-bottom:0">🎁 Бесплатный кейс</div>
+      <div class="pvp-deposit-btn" onclick="hideModal();showDepositModal()">
+        <img src="assets/tg_star.png" height="16" style="width:auto;filter:drop-shadow(0 0 5px #ffd700cc);flex-shrink:0">
+        <span class="modal-hdr-balance">${window.appState?.balance?.toLocaleString() ?? '...'}</span>
+        <span style="color:#f5c842;font-size:18px;font-weight:700;line-height:1;margin-left:1px">+</span>
+      </div>
+    </div>
     <div class="spin-sub">Раз в 24 часа бесплатно!</div>
     <div class="spin-track-wrap">
       <div class="spin-pointer"></div>
@@ -499,7 +535,14 @@ function openRoulette() {
 
   showModal(`
     <div class="modal-close-bar"><div class="modal-close-handle"></div></div>
-    <div class="pvp-title">${_goldStar(22)} Рулетка</div>
+    <div class="pvp-header-row">
+      <div class="pvp-title" style="margin-bottom:0">${_goldStar(22)} Рулетка</div>
+      <div class="pvp-deposit-btn" onclick="hideModal();showDepositModal()">
+        <img src="assets/tg_star.png" height="16" style="width:auto;filter:drop-shadow(0 0 5px #ffd700cc);flex-shrink:0">
+        <span class="modal-hdr-balance">${window.appState?.balance?.toLocaleString() ?? '...'}</span>
+        <span style="color:#f5c842;font-size:18px;font-weight:700;line-height:1;margin-left:1px">+</span>
+      </div>
+    </div>
     <div class="pvp-sub">Крутите и умножайте свои звёзды!</div>
     <div class="spin-track-wrap">
       <div class="spin-pointer"></div>
@@ -634,7 +677,14 @@ function openSlots() {
     </div>`;
   showModal(`
     <div class="modal-close-bar"><div class="modal-close-handle"></div></div>
-    <div class="pvp-title">🎰 Слоты</div>
+    <div class="pvp-header-row">
+      <div class="pvp-title" style="margin-bottom:0">🎰 Слоты</div>
+      <div class="pvp-deposit-btn" onclick="hideModal();showDepositModal()">
+        <img src="assets/tg_star.png" height="16" style="width:auto;filter:drop-shadow(0 0 5px #ffd700cc);flex-shrink:0">
+        <span class="modal-hdr-balance">${window.appState?.balance?.toLocaleString() ?? '...'}</span>
+        <span style="color:#f5c842;font-size:18px;font-weight:700;line-height:1;margin-left:1px">+</span>
+      </div>
+    </div>
     <div class="pvp-sub">Три символа — и ты богач!</div>
     <div class="slots-display">
       ${makeReel(0, '🍒')}${makeReel(1, '🍋')}${makeReel(2, '🍊')}
@@ -718,7 +768,14 @@ function openUpgrade() {
 
   showModal(`
     <div class="modal-close-bar"><div class="modal-close-handle"></div></div>
-    <div class="pvp-title">⬆️ Апгрейд</div>
+    <div class="pvp-header-row">
+      <div class="pvp-title" style="margin-bottom:0">⬆️ Апгрейд</div>
+      <div class="pvp-deposit-btn" onclick="hideModal();showDepositModal()">
+        <img src="assets/tg_star.png" height="16" style="width:auto;filter:drop-shadow(0 0 5px #ffd700cc);flex-shrink:0">
+        <span class="modal-hdr-balance">${window.appState?.balance?.toLocaleString() ?? '...'}</span>
+        <span style="color:#f5c842;font-size:18px;font-weight:700;line-height:1;margin-left:1px">+</span>
+      </div>
+    </div>
     <div class="pvp-sub">Улучши предмет за шанс получить лучший</div>
     <div class="upgrade-arrows">
       <div style="text-align:center">
@@ -880,7 +937,14 @@ function openCrash() {
     <div class="modal-close-bar"><div class="modal-close-handle"></div></div>
     <div class="crash-header">
       <div class="crash-title">КРАШ</div>
-      <div class="crash-round-badge" id="crash-round-badge">Раунд #—</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="crash-round-badge" id="crash-round-badge">Раунд #—</div>
+        <div class="pvp-deposit-btn" onclick="hideModal();showDepositModal()">
+          <img src="assets/tg_star.png" height="16" style="width:auto;filter:drop-shadow(0 0 5px #ffd700cc);flex-shrink:0">
+          <span class="modal-hdr-balance">${window.appState?.balance?.toLocaleString() ?? '...'}</span>
+          <span style="color:#f5c842;font-size:18px;font-weight:700;line-height:1;margin-left:1px">+</span>
+        </div>
+      </div>
     </div>
 
     <div class="crash-sky phase-waiting" id="crash-sky">
@@ -1138,6 +1202,11 @@ function openMiner() {
     <div class="modal-close-bar"><div class="modal-close-handle"></div></div>
     <div class="miner-header">
       <div class="miner-title">💣 САПЁР</div>
+      <div class="pvp-deposit-btn" onclick="hideModal();showDepositModal()">
+        <img src="assets/tg_star.png" height="16" style="width:auto;filter:drop-shadow(0 0 5px #ffd700cc);flex-shrink:0">
+        <span class="modal-hdr-balance">${window.appState?.balance?.toLocaleString() ?? '...'}</span>
+        <span style="color:#f5c842;font-size:18px;font-weight:700;line-height:1;margin-left:1px">+</span>
+      </div>
     </div>
     <div id="miner-content"></div>
   `);

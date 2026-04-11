@@ -302,7 +302,7 @@ html, body { height: 100%; overflow: hidden; font-family: 'Inter', sans-serif; b
 .leader-prize { font-size: 22px; }
 
 /* ===== MINER GAME ===== */
-.miner-header { text-align:center; margin-bottom:14px; }
+.miner-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
 .miner-title { font-size:22px; font-weight:900; letter-spacing:2px; }
 .miner-section-label { font-size:10px; font-weight:800; color:var(--text3); letter-spacing:1.2px; text-transform:uppercase; margin-bottom:8px; }
 .miner-mine-row { display:flex; gap:6px; }
@@ -409,11 +409,13 @@ html, body { height: 100%; overflow: hidden; font-family: 'Inter', sans-serif; b
 .pvp-wheel-center {
   position: absolute; top: 50%; left: 50%;
   transform: translate(-50%, -50%);
-  width: 42px; height: 42px;
-  background: var(--bg1); border-radius: 50%;
+  width: 46px; height: 46px;
+  background: var(--bg); border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
-  font-size: 18px;
-  box-shadow: 0 0 0 2px rgba(255,255,255,0.08), 0 2px 14px rgba(0,0,0,0.55);
+  font-size: 16px; font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  box-shadow: 0 0 0 2px rgba(255,255,255,0.1), 0 2px 14px rgba(0,0,0,0.7);
+  transition: color 0.3s;
 }
 
 .pvp-players-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
@@ -491,8 +493,55 @@ html, body { height: 100%; overflow: hidden; font-family: 'Inter', sans-serif; b
   display: flex; align-items: center; justify-content: center;
   font-weight: 700; font-size: 13px; flex-shrink: 0;
 }
+.pvp-room-avatar-img {
+  width: 36px; height: 36px; border-radius: 50%;
+  object-fit: cover; flex-shrink: 0;
+}
 .pvp-room-name { font-size: 14px; font-weight: 600; }
 .pvp-room-bet { font-size: 12px; color: var(--gold); }
+
+/* ===== PVP HEADER & DEPOSIT BUTTON ===== */
+.pvp-header-row {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 6px;
+}
+.pvp-deposit-btn {
+  display: flex; align-items: center; gap: 6px;
+  background: var(--bg3); border-radius: 20px; padding: 6px 14px;
+  font-weight: 700; font-size: 15px; cursor: pointer;
+  white-space: nowrap; user-select: none;
+}
+
+/* ===== PVP WIN OVERLAY ===== */
+.pvp-win-overlay { background: rgba(0,0,0,0.9); }
+.pvp-win-card {
+  display: flex; flex-direction: column; align-items: center;
+  background: linear-gradient(160deg, #1a1a2e, #16213e);
+  border: 1px solid rgba(77,110,245,0.3); border-radius: 24px;
+  padding: 28px 24px; width: 280px; gap: 10px;
+  animation: winBounce 0.5s ease;
+}
+.pvp-win-top-label { font-size: 18px; font-weight: 800; color: var(--gold); }
+.pvp-win-top-label.pvp-win-lose { color: var(--red); }
+.pvp-win-avatar {
+  width: 80px; height: 80px; border-radius: 50%; object-fit: cover;
+  border: 3px solid rgba(77,110,245,0.5);
+  box-shadow: 0 0 20px rgba(77,110,245,0.3);
+}
+.pvp-win-avatar-letter {
+  width: 80px; height: 80px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, var(--accent), #c471ed);
+  font-size: 32px; font-weight: 800; color: white;
+  border: 3px solid rgba(77,110,245,0.5);
+}
+.pvp-win-name { font-size: 20px; font-weight: 800; }
+.pvp-win-pot { font-size: 26px; font-weight: 900; color: var(--gold); }
+.pvp-win-stats { display: flex; gap: 20px; margin-top: 4px; }
+.pvp-win-stat { text-align: center; }
+.pvp-win-stat-val { font-size: 22px; font-weight: 800; }
+.pvp-win-coeff { color: #4d9ef5; }
+.pvp-win-stat-label { font-size: 11px; color: var(--text2); margin-top: 2px; }
 
 /* ===== CASE SPIN MODAL ===== */
 .spin-title { font-size: 20px; font-weight: 800; text-align: center; margin-bottom: 4px; }
