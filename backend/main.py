@@ -9,19 +9,34 @@ from routers import users, cases, pvp, games, social, admin, payments, telegram,
 from routers.games import crash_loop
 
 BOT_TOKEN = os.getenv("BOT_TOKEN", "")
-BACKEND_URL = os.getenv("BACKEND_URL", "")
+BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000")
+
+
+async def _get_ngrok_url() -> str | None:
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.get("http://localhost:4040/api/tunnels", timeout=5)
+            for t in resp.json().get("tunnels", []):
+                if t.get("proto") == "https":
+                    return t["public_url"]
+    except Exception:
+        return None
 
 
 async def _set_webhook():
-    if not BOT_TOKEN or not BACKEND_URL:
+    if not BOT_TOKEN:
         return
-    url = f"{BACKEND_URL.rstrip('/')}/telegram/webhook"
+    ngrok_url = await _get_ngrok_url()
+    backend_url = ngrok_url or BACKEND_URL
+    if ngrok_url:
+        print(f"[ngrok] Detected URL: {ngrok_url}")
+    url = f"{backend_url.rstrip('/')}/telegram/webhook"
     async with httpx.AsyncClient() as client:
         r = await client.post(
             f"https://api.telegram.org/bot{BOT_TOKEN}/setWebhook",
             json={"url": url, "drop_pending_updates": True},
         )
-        print(f"[webhook] {r.json()}")
+        print(f"[webhook] set to {url} → {r.json()}")
 
 
 @asynccontextmanager
@@ -39,14 +54,17 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="DC_GalaxySpinBot API", version="1.0.0", lifespan=lifespan)
 
-# CORS middleware - разрешаем GitHub Pages и Telegram
+# CORS middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "https://timsmokovski.github.io",
         "https://web.telegram.org",
         "https://t.me",
-        "https://backend-production-128d.up.railway.app",
+        "https://*.ngrok-free.app",
+        "https://*.ngrok.io",
+        "http://localhost:8000",
+        "http://localhost:9000",
         "http://localhost:3000",
         "http://localhost:5500",
         "http://127.0.0.1:5500",
