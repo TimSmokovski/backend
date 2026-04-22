@@ -1,7 +1,7 @@
 // ===== API CLIENT =====
-const API_BASE = window.location.hostname === 'localhost'
-  ? 'http://localhost:8000'
-  : 'https://backend-production-128d.up.railway.app';
+const API_BASE = (typeof CONFIG !== 'undefined' && CONFIG.API_BASE)
+  ? CONFIG.API_BASE
+  : 'http://localhost:8000';
 
 const tg = window.Telegram?.WebApp;
 
