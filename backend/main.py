@@ -62,6 +62,7 @@ app.add_middleware(
         "https://web.telegram.org",
         "https://t.me",
         "https://*.ngrok-free.app",
+        "https://*.ngrok-free.dev",
         "https://*.ngrok.io",
         "http://localhost:8000",
         "http://localhost:9000",

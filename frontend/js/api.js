@@ -19,6 +19,7 @@ async function apiCall(method, path, data = null) {
     headers: {
       'Content-Type': 'application/json',
       'X-Init-Data': tg?.initData || '',
+      'ngrok-skip-browser-warning': 'true',
     },
   };
   if (data) opts.body = JSON.stringify(data);
