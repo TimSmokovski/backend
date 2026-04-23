@@ -52,7 +52,7 @@ async def lifespan(app: FastAPI):
         pass
 
 
-app = FastAPI(title="DC_GalaxySpinBot API", version="1.0.0", lifespan=lifespan)
+app = FastAPI(title="LkStars API", version="1.0.0", lifespan=lifespan)
 
 # CORS middleware
 app.add_middleware(
@@ -86,4 +86,4 @@ app.include_router(withdrawals.router)
 
 @app.get("/")
 async def root():
-    return {"status": "ok", "app": "DC_GalaxySpinBot"}
+    return {"status": "ok", "app": "LkStars"}

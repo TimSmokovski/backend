@@ -9,7 +9,7 @@ from auth import get_current_user
 router = APIRouter(tags=["social"])
 
 BOT_TOKEN    = os.getenv("BOT_TOKEN", "")
-BOT_USERNAME = os.getenv("BOT_USERNAME", "DC_GalaxySpinBot")
+BOT_USERNAME = os.getenv("BOT_USERNAME", "LkStars_bot")
 REF_BONUS    = 100  # звёзд за каждого приглашённого
 
 

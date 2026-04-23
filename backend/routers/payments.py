@@ -22,7 +22,7 @@ async def create_invoice(body: dict, user: dict = Depends(get_current_user)):
             f"https://api.telegram.org/bot{BOT_TOKEN}/createInvoiceLink",
             json={
                 "title": f"Пополнение {amount} ⭐",
-                "description": f"Пополнение баланса на {amount} звёзд в DC GalaxySpinBot",
+                "description": f"Пополнение баланса на {amount} звёзд в LkStars",
                 "payload": payload,
                 "currency": "XTR",
                 "prices": [{"label": f"{amount} звёзд", "amount": amount}],
