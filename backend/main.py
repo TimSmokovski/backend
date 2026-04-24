@@ -1,7 +1,10 @@
 import asyncio
 import os
 import httpx
+from dotenv import load_dotenv
 from fastapi import FastAPI
+
+load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env'))
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from database import init_db

@@ -26,7 +26,9 @@ def verify_init_data(init_data: str) -> dict:
         )
         secret = hmac.new(b"WebAppData", BOT_TOKEN.encode(), hashlib.sha256).digest()
         expected = hmac.new(secret, data_check.encode(), hashlib.sha256).hexdigest()
-        if expected != parsed.get("hash"):
+        received = parsed.get("hash", "")
+        print(f"[auth] expected={expected[:16]}... received={received[:16]}... match={expected==received}")
+        if expected != received:
             raise HTTPException(status_code=403, detail="Invalid init data")
         auth_date = int(parsed.get("auth_date", 0))
         if auth_date and time.time() - auth_date > AUTH_DATE_TTL:
