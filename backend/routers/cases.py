@@ -30,13 +30,25 @@ async def open_case(body: dict, user: dict = Depends(get_current_user)):
         raise HTTPException(status_code=400, detail="Неверный тип кейса")
 
     async with aiosqlite.connect(DB_PATH) as db:
-        free_at = user.get("free_case_at")
-        if free_at:
-            last = datetime.fromisoformat(free_at)
-            if datetime.utcnow() - last < timedelta(hours=24):
+        now = datetime.utcnow()
+        cutoff_iso = (now - timedelta(hours=24)).isoformat()
+
+        # Атомарно резервируем кулдаун: UPDATE срабатывает только если прошло 24ч
+        cur = await db.execute(
+            "UPDATE users SET free_case_at = ? "
+            "WHERE id = ? AND (free_case_at IS NULL OR free_case_at < ?)",
+            (now.isoformat(), user["id"], cutoff_iso),
+        )
+        if cur.rowcount == 0:
+            cur = await db.execute("SELECT free_case_at FROM users WHERE id = ?", (user["id"],))
+            row = await cur.fetchone()
+            if row and row[0]:
+                last = datetime.fromisoformat(row[0])
                 next_at = last + timedelta(hours=24)
-                hours_left = int((next_at - datetime.utcnow()).seconds / 3600)
+                hours_left = max(1, int((next_at - now).total_seconds() / 3600))
                 raise HTTPException(status_code=429, detail=f"Следующий кейс через {hours_left} ч.")
+            raise HTTPException(status_code=429, detail="Попробуйте позже")
+
         luck = body.get("luck", -1)
         admin_override = isinstance(luck, (int, float)) and 0 <= luck <= 100 and _games._is_admin(user)
         if admin_override:
@@ -56,8 +68,8 @@ async def open_case(body: dict, user: dict = Depends(get_current_user)):
         if not admin_override:
             _games._update_rtp_penalty(user["id"], item["stars"] > 0)
         await db.execute(
-            "UPDATE users SET balance = balance + ?, free_case_at = ? WHERE id = ?",
-            (item["stars"], datetime.utcnow().isoformat(), user["id"]),
+            "UPDATE users SET balance = balance + ? WHERE id = ?",
+            (item["stars"], user["id"]),
         )
         # Сохраняем в историю если 100+ звёзд
         if item["stars"] >= 100:

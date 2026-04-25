@@ -760,69 +760,6 @@ async function doSlotsSpin() {
   }, 2700);
 }
 
-// ===== UPGRADE =====
-function openUpgrade() {
-  const fromItem = ITEMS[Math.floor(Math.random() * 4)];
-  const toItem = ITEMS[4 + Math.floor(Math.random() * 4)];
-  const chance = Math.max(10, Math.min(90, Math.floor((fromItem.stars / toItem.stars) * 100)));
-
-  showModal(`
-    <div class="modal-close-bar"><div class="modal-close-handle"></div></div>
-    <div class="pvp-header-row">
-      <div class="pvp-title" style="margin-bottom:0">⬆️ Апгрейд</div>
-      <div class="pvp-deposit-btn" onclick="hideModal();showDepositModal()">
-        <img src="assets/tg_star.png" height="16" style="width:auto;filter:drop-shadow(0 0 5px #ffd700cc);flex-shrink:0">
-        <span class="modal-hdr-balance">${window.appState?.balance?.toLocaleString() ?? '...'}</span>
-        <span style="color:#f5c842;font-size:18px;font-weight:700;line-height:1;margin-left:1px">+</span>
-      </div>
-    </div>
-    <div class="pvp-sub">Улучши предмет за шанс получить лучший</div>
-    <div class="upgrade-arrows">
-      <div style="text-align:center">
-        <div class="upgrade-card-box">
-          <span>${fromItem.emoji}</span>
-          <span class="upgrade-card-val">${_goldStar(14)} ${fromItem.stars}</span>
-        </div>
-        <div class="upgrade-card-label" style="margin-top:6px">Твой предмет</div>
-      </div>
-      <span style="font-size:32px">→</span>
-      <div style="text-align:center">
-        <div class="upgrade-card-box target">
-          <span>${toItem.emoji}</span>
-          <span class="upgrade-card-val">${_goldStar(14)} ${toItem.stars}</span>
-        </div>
-        <div class="upgrade-card-label" style="margin-top:6px">💰 Профит</div>
-      </div>
-    </div>
-    <div class="upgrade-chance">
-      <div class="upgrade-chance-val" style="color:${chance > 50 ? 'var(--green)' : chance > 25 ? 'var(--orange)' : 'var(--red)'}">${chance}%</div>
-      <div class="upgrade-chance-bar">
-        <div class="upgrade-chance-fill" style="width:${chance}%"></div>
-      </div>
-      <div class="upgrade-chance-label">Шанс успеха</div>
-    </div>
-    <button class="btn-upgrade" onclick="doUpgrade(${chance}, '${toItem.emoji}', '${toItem.name}', ${toItem.stars})">⬆️ Апгрейд</button>
-  `);
-}
-
-function doUpgrade(chance, emoji, name, stars) {
-  hideModal();
-  const _luckRawU = window.appState?.isAdmin ? localStorage.getItem('admin_luck_override') : null;
-  const _pU = parseInt(_luckRawU);
-  const _localLuckU = _luckRawU !== null ? Math.max(0, Math.min(100, isNaN(_pU) ? 50 : _pU)) : null;
-  const win = Math.random() * 100 < (_localLuckU !== null ? _localLuckU : chance);
-  setTimeout(() => {
-    if (win) {
-      showWin(emoji, `Апгрейд успешен!`, `⭐ ${stars}`);
-      if (window.appState) window.appState.balance += stars;
-      if (stars >= 100) API.recordWin(emoji, 'Апгрейд', stars);
-    } else {
-      showWin('💀', 'Не удалось', 'Предмет утерян...');
-    }
-    updateBalance();
-  }, 300);
-}
-
 // ===== CRASH GAME =====
 let crashActive = false;
 let crashInterval = null;

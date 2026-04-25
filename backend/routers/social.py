@@ -70,35 +70,40 @@ async def complete_task(task_id: int, user: dict = Depends(get_current_user)):
         if await cur2.fetchone():
             raise HTTPException(status_code=400, detail="Уже выполнено")
 
-    task_type = task["type"] if "type" in task.keys() else None
+        task_type = task["type"] if "type" in task.keys() else None
 
-    # ── Проверка подписки на канал ─────────────────────────────────────────
-    if task_type == "channel_sub":
-        url = task["url"] or ""
-        # Извлекаем username из ссылки t.me/username
-        channel = url.rstrip("/").split("/")[-1]
-        if not channel:
-            raise HTTPException(400, "Канал не настроен — обратись к администратору")
-        subscribed = await _is_subscribed(user["id"], channel)
-        if not subscribed:
-            raise HTTPException(400, "Сначала подпишись на канал, затем нажми «Проверить»")
+        # ── Проверка подписки на канал ─────────────────────────────────────
+        if task_type == "channel_sub":
+            url = task["url"] or ""
+            channel = url.rstrip("/").split("/")[-1]
+            if not channel:
+                raise HTTPException(400, "Канал не настроен — обратись к администратору")
+            subscribed = await _is_subscribed(user["id"], channel)
+            if not subscribed:
+                raise HTTPException(400, "Сначала подпишись на канал, затем нажми «Проверить»")
 
-    # ── Проверка приглашения 3 друзей ──────────────────────────────────────
-    elif task_type == "invite_friends":
-        async with aiosqlite.connect(DB_PATH) as db:
+        # ── Проверка приглашения 3 друзей ──────────────────────────────────
+        elif task_type == "invite_friends":
             cur = await db.execute(
                 "SELECT COUNT(*) FROM users WHERE ref_by = ?", (user["id"],)
             )
             invited = (await cur.fetchone())[0]
-        if invited < 3:
-            raise HTTPException(
-                400, f"Нужно пригласить 3 друзей. Приглашено: {invited}/3"
-            )
+            if invited < 3:
+                raise HTTPException(
+                    400, f"Нужно пригласить 3 друзей. Приглашено: {invited}/3"
+                )
 
-    # ── Зачисляем награду ─────────────────────────────────────────────────
-    async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute("INSERT INTO user_tasks (user_id, task_id) VALUES (?, ?)", (user["id"], task_id))
-        await db.execute("UPDATE users SET balance = balance + ? WHERE id = ?", (task["reward"], user["id"]))
+        # ── Атомарная вставка: UNIQUE-индекс защищает от двойной награды ───
+        cur = await db.execute(
+            "INSERT OR IGNORE INTO user_tasks (user_id, task_id) VALUES (?, ?)",
+            (user["id"], task_id),
+        )
+        if cur.rowcount == 0:
+            raise HTTPException(status_code=400, detail="Уже выполнено")
+        await db.execute(
+            "UPDATE users SET balance = balance + ? WHERE id = ?",
+            (task["reward"], user["id"]),
+        )
         await db.commit()
         cur3 = await db.execute("SELECT balance FROM users WHERE id = ?", (user["id"],))
         row = await cur3.fetchone()
@@ -126,12 +131,12 @@ async def join_contest(contest_id: int, user: dict = Depends(get_current_user)):
         contest = await cur.fetchone()
         if not contest:
             raise HTTPException(status_code=404, detail="Конкурс не найден")
-        cur2 = await db.execute(
-            "SELECT id FROM contest_entries WHERE contest_id = ? AND user_id = ?", (contest_id, user["id"])
+        cur = await db.execute(
+            "INSERT OR IGNORE INTO contest_entries (contest_id, user_id) VALUES (?, ?)",
+            (contest_id, user["id"]),
         )
-        if await cur2.fetchone():
+        if cur.rowcount == 0:
             raise HTTPException(status_code=400, detail="Уже участвуете")
-        await db.execute("INSERT INTO contest_entries (contest_id, user_id) VALUES (?, ?)", (contest_id, user["id"]))
         await db.execute("UPDATE contests SET participants = participants + 1 WHERE id = ?", (contest_id,))
         await db.commit()
         cur3 = await db.execute("SELECT participants FROM contests WHERE id = ?", (contest_id,))
@@ -161,16 +166,18 @@ async def apply_referral(body: dict, user: dict = Depends(get_current_user)):
     if ref_id == user["id"]:
         return {"ok": False, "detail": "self-ref"}
     async with aiosqlite.connect(DB_PATH) as db:
-        # Применяем только если реферал ещё не установлен
-        cur = await db.execute("SELECT ref_by FROM users WHERE id = ?", (user["id"],))
-        row = await cur.fetchone()
-        if row and row[0]:
-            return {"ok": False, "detail": "already set"}
         # Проверяем что реферер существует
-        cur2 = await db.execute("SELECT id FROM users WHERE id = ?", (ref_id,))
-        if not await cur2.fetchone():
+        cur = await db.execute("SELECT id FROM users WHERE id = ?", (ref_id,))
+        if not await cur.fetchone():
             return {"ok": False, "detail": "referrer not found"}
-        await db.execute("UPDATE users SET ref_by = ? WHERE id = ?", (ref_id, user["id"]))
+        # Атомарно: устанавливаем ref_by только если он ещё не задан
+        cur = await db.execute(
+            "UPDATE users SET ref_by = ? WHERE id = ? AND ref_by IS NULL",
+            (ref_id, user["id"]),
+        )
+        if cur.rowcount == 0:
+            return {"ok": False, "detail": "already set"}
+        # Бонус начисляем только если реально установили реферала
         await db.execute("UPDATE users SET balance = balance + ? WHERE id = ?", (REF_BONUS, ref_id))
         await db.commit()
     return {"ok": True}

@@ -229,24 +229,36 @@ async def crash_loop():
         GLOBAL_WIN_CHANCE = int(saved_chance)
 
     while True:
-        _crash.update({
-            "phase": "waiting",
-            "multiplier": 1.0,
-            "crash_point": _gen_crash(),
-            "time_left": 10,
-            "players": {},
-            "extended": False,
-        })
+        # Сброс состояния и переход в waiting — атомарно с _crash_bet_lock,
+        # иначе ставка, оформленная во время перехода, может быть стёрта.
+        async with _crash_bet_lock:
+            _crash.update({
+                "phase": "waiting",
+                "multiplier": 1.0,
+                "crash_point": _gen_crash(),
+                "time_left": 10,
+                "players": {},
+                "extended": False,
+            })
         for i in range(10, 0, -1):
             _crash["time_left"] = i
             await asyncio.sleep(1)
 
-        if not _crash["players"]:
+        # Решение «летим / пропускаем» — тоже под локом, чтобы ставка
+        # не могла попасть в раунд после того, как мы решили его пропустить.
+        async with _crash_bet_lock:
+            if not _crash["players"]:
+                _crash["phase"] = "skipped"  # маркер: bet увидит «не waiting» и откажет
+                start_round = False
+            else:
+                _crash["phase"] = "flying"
+                _crash["time_left"] = 0
+                start_round = True
+
+        if not start_round:
             await asyncio.sleep(0.5)
             continue
 
-        _crash["phase"] = "flying"
-        _crash["time_left"] = 0
         loop = asyncio.get_running_loop()
         t0 = loop.time()
 
@@ -365,27 +377,6 @@ async def crash_cashout(user: dict = Depends(get_current_user)):
         cur = await db.execute("SELECT balance FROM users WHERE id = ?", (user["id"],))
         row = await cur.fetchone()
     return {"ok": True, "won": won, "multiplier": mult, "new_balance": row[0]}
-
-
-_UPGRADE_VALID_STARS = {500, 800, 600, 950, 1257, 1361, 2404, 2814, 4653, 5009, 7500, 9999}
-
-
-@router.post("/upgrade")
-async def upgrade_item(body: dict, user: dict = Depends(get_current_user)):
-    from_stars = int(body.get("from_stars", 500))
-    to_stars   = int(body.get("to_stars", 2000))
-    if from_stars not in _UPGRADE_VALID_STARS or to_stars not in _UPGRADE_VALID_STARS:
-        raise HTTPException(status_code=400, detail="Недопустимые значения предметов")
-    if to_stars <= from_stars:
-        raise HTTPException(status_code=400, detail="Целевой предмет должен быть дороже исходного")
-    if user["balance"] < from_stars:
-        raise HTTPException(status_code=400, detail="Недостаточно звёзд")
-    chance = max(5, min(90, int((from_stars / to_stars) * 100)))
-    success = random.random() * 100 < chance
-    won = to_stars if success else 0
-    _update_rtp_penalty(user["id"], success)
-    new_balance = await deduct_and_add(user["id"], from_stars, won)
-    return {"success": success, "chance": chance, "new_balance": new_balance}
 
 
 # ===== MINER (САПЁР) =====

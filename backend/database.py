@@ -223,6 +223,34 @@ async def init_db():
         except Exception:
             pass
 
+        # Миграция: уникальность user_tasks(user_id, task_id) — защита от двойной награды
+        try:
+            await db.execute(
+                "DELETE FROM user_tasks WHERE id NOT IN "
+                "(SELECT MIN(id) FROM user_tasks GROUP BY user_id, task_id)"
+            )
+            await db.execute(
+                "CREATE UNIQUE INDEX IF NOT EXISTS idx_user_tasks_user_task "
+                "ON user_tasks(user_id, task_id)"
+            )
+            await db.commit()
+        except Exception:
+            pass
+
+        # Миграция: уникальность contest_entries(contest_id, user_id)
+        try:
+            await db.execute(
+                "DELETE FROM contest_entries WHERE id NOT IN "
+                "(SELECT MIN(id) FROM contest_entries GROUP BY contest_id, user_id)"
+            )
+            await db.execute(
+                "CREATE UNIQUE INDEX IF NOT EXISTS idx_contest_entries_unique "
+                "ON contest_entries(contest_id, user_id)"
+            )
+            await db.commit()
+        except Exception:
+            pass
+
         # Заполняем задания
         cursor = await db.execute("SELECT COUNT(*) FROM tasks")
         count = (await cursor.fetchone())[0]

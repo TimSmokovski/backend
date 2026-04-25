@@ -150,59 +150,68 @@ async def get_lobby():
     }
 
 
+_pvp_bet_lock = asyncio.Lock()  # Защита от гонки на лимит игроков и счётчик ставок
+
+
 @router.post("/bet")
 async def place_bet(body: dict, user: dict = Depends(get_current_user)):
-    amount = int(body.get("amount", 0))
+    amount = int(body.get("amount", 0)) if isinstance(body.get("amount"), int) else 0
     if amount < 10:
         raise HTTPException(status_code=400, detail="Минимальная ставка — 10 звёзд")
-    async with aiosqlite.connect(DB_PATH) as db:
-        db.row_factory = aiosqlite.Row
-        round_id = await get_or_create_active_round(db)
+    async with _pvp_bet_lock:
+        async with aiosqlite.connect(DB_PATH) as db:
+            db.row_factory = aiosqlite.Row
+            round_id = await get_or_create_active_round(db)
 
-        luck = body.get("luck", -1)
-        if isinstance(luck, (int, float)) and 0 <= luck <= 100 and _is_admin(user):
-            _pvp_luck[round_id] = {"user_id": user["id"], "luck": int(luck)}
+            luck = body.get("luck", -1)
+            if isinstance(luck, (int, float)) and 0 <= luck <= 100 and _is_admin(user):
+                _pvp_luck[round_id] = {"user_id": user["id"], "luck": int(luck)}
 
-        cur = await db.execute("SELECT started_at FROM pvp_rounds WHERE id = ?", (round_id,))
-        round_row = await cur.fetchone()
+            cur = await db.execute("SELECT started_at FROM pvp_rounds WHERE id = ?", (round_id,))
+            round_row = await cur.fetchone()
 
-        cur = await db.execute("SELECT id, amount FROM pvp_bets WHERE round_id = ? AND user_id = ?", (round_id, user["id"]))
-        existing_bet = await cur.fetchone()
+            cur = await db.execute("SELECT id, amount FROM pvp_bets WHERE round_id = ? AND user_id = ?", (round_id, user["id"]))
+            existing_bet = await cur.fetchone()
 
-        cur = await db.execute("SELECT COUNT(*) FROM pvp_bets WHERE round_id = ?", (round_id,))
-        count = (await cur.fetchone())[0]
-        if count >= MAX_PLAYERS:
-            raise HTTPException(status_code=400, detail="Комната заполнена")
+            cur = await db.execute("SELECT COUNT(*) FROM pvp_bets WHERE round_id = ?", (round_id,))
+            count = (await cur.fetchone())[0]
+            if not existing_bet and count >= MAX_PLAYERS:
+                raise HTTPException(status_code=400, detail="Комната заполнена")
 
-        cur = await db.execute(
-            "UPDATE users SET balance = balance - ? WHERE id = ? AND balance >= ?",
-            (amount, user["id"], amount),
-        )
-        if cur.rowcount == 0:
-            raise HTTPException(status_code=400, detail="Недостаточно звёзд")
-        if existing_bet:
-            await db.execute("UPDATE pvp_bets SET amount = amount + ? WHERE id = ?", (amount, existing_bet[0]))
-        else:
-            await db.execute("INSERT INTO pvp_bets (round_id, user_id, amount) VALUES (?, ?, ?)", (round_id, user["id"], amount))
+            cur = await db.execute(
+                "UPDATE users SET balance = balance - ? WHERE id = ? AND balance >= ?",
+                (amount, user["id"], amount),
+            )
+            if cur.rowcount == 0:
+                raise HTTPException(status_code=400, detail="Недостаточно звёзд")
+            if existing_bet:
+                await db.execute("UPDATE pvp_bets SET amount = amount + ? WHERE id = ?", (amount, existing_bet[0]))
+            else:
+                await db.execute("INSERT INTO pvp_bets (round_id, user_id, amount) VALUES (?, ?, ?)", (round_id, user["id"], amount))
 
-        # Если стало 2 игрока — запускаем таймер (считаем уникальных игроков)
-        new_count = count if existing_bet else count + 1
-        if new_count == 2 and not round_row["started_at"]:
-            now = datetime.now(timezone.utc).isoformat()
-            await db.execute("UPDATE pvp_rounds SET started_at = ? WHERE id = ?", (now, round_id))
+            # Если стало 2 игрока — запускаем таймер (считаем уникальных игроков)
+            new_count = count if existing_bet else count + 1
+            if new_count == 2 and not round_row["started_at"]:
+                now = datetime.now(timezone.utc).isoformat()
+                await db.execute("UPDATE pvp_rounds SET started_at = ? WHERE id = ?", (now, round_id))
 
-        await db.commit()
+            await db.commit()
 
-        # Если 10 игроков — авторазыгрываем
-        auto_resolved = None
-        if new_count >= MAX_PLAYERS:
+            should_resolve = new_count >= MAX_PLAYERS
+
+            cur = await db.execute("SELECT balance FROM users WHERE id = ?", (user["id"],))
+            row = await cur.fetchone()
+            new_balance = row[0]
+
+    # Авторазыгрыш — вне _pvp_bet_lock, т.к. try_resolve_round берёт _pvp_round_lock
+    auto_resolved = None
+    if should_resolve:
+        async with aiosqlite.connect(DB_PATH) as db:
+            db.row_factory = aiosqlite.Row
             auto_resolved = await try_resolve_round(db, round_id)
-
-        cur = await db.execute("SELECT balance FROM users WHERE id = ?", (user["id"],))
-        row = await cur.fetchone()
 
     return {
         "success": True,
-        "new_balance": row[0],
+        "new_balance": new_balance,
         "auto_resolved": auto_resolved,
     }

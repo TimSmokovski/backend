@@ -23,21 +23,23 @@ async def request_withdrawal(body: dict, user: dict = Depends(get_current_user))
 
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
+        # Атомарно списываем только если real_balance (balance - demo) >= amount
         cur = await db.execute(
-            "SELECT balance, COALESCE(demo_balance,0) as demo_balance FROM users WHERE id = ?",
-            (user["id"],),
+            "UPDATE users SET balance = balance - ? "
+            "WHERE id = ? AND (balance - COALESCE(demo_balance, 0)) >= ?",
+            (amount, user["id"], amount),
         )
-        row = await cur.fetchone()
-        if not row:
-            raise HTTPException(404, "Пользователь не найден")
-
-        real_balance = row["balance"] - row["demo_balance"]
-        if real_balance < amount:
+        if cur.rowcount == 0:
+            cur = await db.execute(
+                "SELECT balance, COALESCE(demo_balance, 0) as demo_balance FROM users WHERE id = ?",
+                (user["id"],),
+            )
+            row = await cur.fetchone()
+            if not row:
+                raise HTTPException(404, "Пользователь не найден")
+            real_balance = max(0, row["balance"] - row["demo_balance"])
             raise HTTPException(400, f"Недостаточно звёзд (доступно {real_balance} ⭐)")
 
-        await db.execute(
-            "UPDATE users SET balance = balance - ? WHERE id = ?", (amount, user["id"])
-        )
         await db.execute(
             "INSERT INTO withdrawals (user_id, amount, ton_address) VALUES (?, ?, ?)",
             (user["id"], amount, username),
