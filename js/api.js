@@ -72,7 +72,6 @@ const API = {
   crashBet: (amount)            => apiCall('POST', '/crash/bet', { amount, ..._adminLuck() }),
   crashCashout: ()              => apiCall('POST', '/crash/cashout'),
   spinSlots: (bet)              => apiCall('POST', '/slots/spin', { bet, ..._adminLuck() }),
-  upgrade: (itemId, targetId)   => apiCall('POST', '/upgrade', { item_id: itemId, target_id: targetId }),
   createInvoice: (amount)       => apiCall('POST', '/payments/create_invoice', { amount }),
   requestWithdrawal: (amount, ton_address) => apiCall('POST', '/withdrawals/request', { amount, ton_address }),
   myWithdrawals: ()             => apiCall('GET', '/withdrawals/my'),
