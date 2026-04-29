@@ -1,0 +1,346 @@
+import aiosqlite
+import json
+from datetime import datetime
+
+DB_PATH = "./casearena.db"
+
+
+async def get_db():
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        yield db
+
+
+async def get_setting(key: str, default=None):
+    async with aiosqlite.connect(DB_PATH) as db:
+        cur = await db.execute("SELECT value FROM settings WHERE key = ?", (key,))
+        row = await cur.fetchone()
+    return json.loads(row[0]) if row else default
+
+
+async def taint_win_if_demo(db, user_id: int, bet: int, won: int):
+    """Если ставка использовала демо-звёзды — выигрыш тоже помечается как демо."""
+    cur = await db.execute(
+        "SELECT balance, COALESCE(demo_balance,0) FROM users WHERE id = ?", (user_id,)
+    )
+    row = await cur.fetchone()
+    if not row or row[1] == 0:
+        return
+    new_balance, demo = row[0], row[1]
+    old_balance = new_balance + bet - won
+    real_before = old_balance - demo
+    if real_before < bet:
+        new_demo = demo + won
+    else:
+        new_demo = demo
+    new_demo = max(0, min(new_demo, new_balance))
+    await db.execute("UPDATE users SET demo_balance = ? WHERE id = ?", (new_demo, user_id))
+
+
+async def set_setting(key: str, value):
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            "INSERT INTO settings (key, value) VALUES (?, ?) "
+            "ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+            (key, json.dumps(value)),
+        )
+        await db.commit()
+
+
+async def init_db():
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.executescript("""
+            CREATE TABLE IF NOT EXISTS users (
+                id          INTEGER PRIMARY KEY,
+                name        TEXT DEFAULT 'Игрок',
+                username    TEXT,
+                balance     INTEGER DEFAULT 0,
+                ref_by      INTEGER,
+                created_at  TEXT DEFAULT (datetime('now')),
+                free_case_at TEXT,
+                photo_url   TEXT
+            );
+
+            CREATE TABLE IF NOT EXISTS pvp_rooms (
+                id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                host_id     INTEGER NOT NULL,
+                bet         INTEGER NOT NULL,
+                opponent_id INTEGER,
+                winner_id   INTEGER,
+                status      TEXT DEFAULT 'waiting',
+                created_at  TEXT DEFAULT (datetime('now'))
+            );
+
+            CREATE TABLE IF NOT EXISTS case_wins (
+                id         INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id    INTEGER NOT NULL,
+                emoji      TEXT NOT NULL,
+                name       TEXT NOT NULL,
+                stars      INTEGER NOT NULL,
+                created_at TEXT DEFAULT (datetime('now'))
+            );
+
+            CREATE TABLE IF NOT EXISTS pvp_rounds (
+                id         INTEGER PRIMARY KEY AUTOINCREMENT,
+                status     TEXT DEFAULT 'active',
+                winner_id  INTEGER,
+                total_pot  INTEGER DEFAULT 0,
+                started_at TEXT,
+                created_at TEXT DEFAULT (datetime('now'))
+            );
+
+            CREATE TABLE IF NOT EXISTS pvp_bets (
+                id         INTEGER PRIMARY KEY AUTOINCREMENT,
+                round_id   INTEGER NOT NULL,
+                user_id    INTEGER NOT NULL,
+                amount     INTEGER NOT NULL,
+                created_at TEXT DEFAULT (datetime('now'))
+            );
+
+            CREATE TABLE IF NOT EXISTS tasks (
+                id      INTEGER PRIMARY KEY AUTOINCREMENT,
+                name    TEXT NOT NULL,
+                icon    TEXT DEFAULT 'link',
+                reward  INTEGER DEFAULT 1,
+                url     TEXT,
+                active  INTEGER DEFAULT 1
+            );
+
+            CREATE TABLE IF NOT EXISTS user_tasks (
+                id      INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                task_id INTEGER NOT NULL,
+                done_at TEXT DEFAULT (datetime('now'))
+            );
+
+            CREATE TABLE IF NOT EXISTS contests (
+                id           INTEGER PRIMARY KEY AUTOINCREMENT,
+                prizes_json  TEXT NOT NULL,
+                prize_count  INTEGER NOT NULL,
+                participants INTEGER DEFAULT 0,
+                active       INTEGER DEFAULT 1,
+                ends_at      TEXT
+            );
+
+            CREATE TABLE IF NOT EXISTS contest_entries (
+                id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                contest_id  INTEGER NOT NULL,
+                user_id     INTEGER NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS settings (
+                key   TEXT PRIMARY KEY,
+                value TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS crash_bets (
+                id         INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id    INTEGER NOT NULL,
+                amount     INTEGER NOT NULL,
+                round_id   INTEGER NOT NULL,
+                status     TEXT DEFAULT 'active',
+                won_amount INTEGER DEFAULT 0,
+                created_at TEXT DEFAULT (datetime('now'))
+            );
+        """)
+        await db.commit()
+
+        # Таблица ставок сапёра (для рефанда при рестарте)
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS miner_bets (
+                id         INTEGER PRIMARY KEY AUTOINCREMENT,
+                game_id    TEXT NOT NULL UNIQUE,
+                user_id    INTEGER NOT NULL,
+                amount     INTEGER NOT NULL,
+                status     TEXT DEFAULT 'active',
+                created_at TEXT DEFAULT (datetime('now'))
+            )
+        """)
+        await db.commit()
+
+        # Таблица заявок на вывод
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS withdrawals (
+                id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id     INTEGER NOT NULL,
+                amount      INTEGER NOT NULL,
+                ton_address TEXT NOT NULL,
+                status      TEXT DEFAULT 'pending',
+                fragment_response TEXT,
+                created_at  TEXT DEFAULT (datetime('now')),
+                updated_at  TEXT DEFAULT (datetime('now'))
+            )
+        """)
+
+        # Миграция: тип задания (channel_sub, invite_friends, или NULL = обычное)
+        try:
+            await db.execute("ALTER TABLE tasks ADD COLUMN type TEXT")
+            await db.commit()
+        except Exception:
+            pass
+
+        # Миграция: добавляем photo_url если колонки ещё нет
+        try:
+            await db.execute("ALTER TABLE users ADD COLUMN photo_url TEXT")
+            await db.commit()
+        except Exception:
+            pass
+
+        # Миграция: добавляем banned если колонки ещё нет
+        try:
+            await db.execute("ALTER TABLE users ADD COLUMN banned INTEGER DEFAULT 0")
+            await db.commit()
+        except Exception:
+            pass
+
+        # Миграция: демо-звёзды (выданные администратором, нельзя вывести)
+        try:
+            await db.execute("ALTER TABLE users ADD COLUMN demo_balance INTEGER DEFAULT 0")
+            await db.commit()
+        except Exception:
+            pass
+
+        # Миграция: обнуляем дефолтный баланс 1000 (старый DEFAULT) у пользователей без активности
+        try:
+            await db.execute(
+                "UPDATE users SET balance = 0 WHERE balance = 1000 AND demo_balance = 0"
+            )
+            await db.commit()
+        except Exception:
+            pass
+
+        # Миграция: добавляем started_at в pvp_rounds
+        try:
+            await db.execute("ALTER TABLE pvp_rounds ADD COLUMN started_at TEXT")
+            await db.commit()
+        except Exception:
+            pass
+
+        # Разбаниваем администратора ranpo_sm (если был заблокирован случайно)
+        try:
+            await db.execute("UPDATE users SET banned = 0 WHERE username = 'ranpo_sm' COLLATE NOCASE")
+            await db.commit()
+        except Exception:
+            pass
+
+        # Миграция: уникальность user_tasks(user_id, task_id) — защита от двойной награды
+        try:
+            await db.execute(
+                "DELETE FROM user_tasks WHERE id NOT IN "
+                "(SELECT MIN(id) FROM user_tasks GROUP BY user_id, task_id)"
+            )
+            await db.execute(
+                "CREATE UNIQUE INDEX IF NOT EXISTS idx_user_tasks_user_task "
+                "ON user_tasks(user_id, task_id)"
+            )
+            await db.commit()
+        except Exception:
+            pass
+
+        # Миграция: уникальность contest_entries(contest_id, user_id)
+        try:
+            await db.execute(
+                "DELETE FROM contest_entries WHERE id NOT IN "
+                "(SELECT MIN(id) FROM contest_entries GROUP BY contest_id, user_id)"
+            )
+            await db.execute(
+                "CREATE UNIQUE INDEX IF NOT EXISTS idx_contest_entries_unique "
+                "ON contest_entries(contest_id, user_id)"
+            )
+            await db.commit()
+        except Exception:
+            pass
+
+        # Заполняем задания
+        cursor = await db.execute("SELECT COUNT(*) FROM tasks")
+        count = (await cursor.fetchone())[0]
+        if count == 0:
+            await db.executemany(
+                "INSERT INTO tasks (name, icon, reward, url) VALUES (?, ?, ?, ?)",
+                [
+                    ("Ссылка", "link", 1, None),
+                    ("История", "link", 1, None),
+                    ("Подписаться на наш канал", "tg", 1, "https://t.me/example"),
+                    ("Подписаться на Instagram", "ig", 1, "https://instagram.com/example"),
+                    ("Подписаться на YouTube", "yt", 1, "https://youtube.com/@example"),
+                    ("Подписаться на канал", "tg", 1, "https://t.me/example2"),
+                    ("Подписаться на канал", "tg", 1, "https://t.me/example3"),
+                    ("Подписаться на IMac", "tg", 1, "https://t.me/example4"),
+                ],
+            )
+            await db.commit()
+
+        # Добавляем спец-задания если их ещё нет
+        # Деактивируем все обычные задания (не спец-типы)
+        await db.execute(
+            "UPDATE tasks SET active = 0 WHERE type IS NULL OR type = ''"
+        )
+
+        # channel_sub — создаём или обновляем URL
+        cur = await db.execute("SELECT id FROM tasks WHERE type = 'channel_sub'")
+        if (await cur.fetchone()) is None:
+            await db.execute(
+                "INSERT INTO tasks (name, icon, reward, url, type) VALUES (?, ?, ?, ?, ?)",
+                ("Подписаться на канал", "tg", 1, "https://t.me/xegqq", "channel_sub"),
+            )
+        else:
+            await db.execute(
+                "UPDATE tasks SET url = 'https://t.me/xegqq', active = 1 WHERE type = 'channel_sub'"
+            )
+
+        # invite_friends — создаём или обновляем награду
+        cur = await db.execute("SELECT id FROM tasks WHERE type = 'invite_friends'")
+        if (await cur.fetchone()) is None:
+            await db.execute(
+                "INSERT INTO tasks (name, icon, reward, url, type) VALUES (?, ?, ?, ?, ?)",
+                ("Пригласить 3 друзей", "invite", 10, None, "invite_friends"),
+            )
+        else:
+            await db.execute(
+                "UPDATE tasks SET reward = 10, active = 1 WHERE type = 'invite_friends'"
+            )
+
+        await db.commit()
+
+        # Заполняем конкурсы
+        cursor = await db.execute("SELECT COUNT(*) FROM contests")
+        count = (await cursor.fetchone())[0]
+        if count == 0:
+            contests = [
+                (json.dumps([{"emoji":"🧞","stars":5009},{"emoji":"👾","stars":2814},{"emoji":"👾","stars":2814}]), 12, 308),
+                (json.dumps([{"emoji":"🌿","stars":2404},{"emoji":"🌿","stars":2404},{"emoji":"🧪","stars":1361}]), 12, 1200),
+                (json.dumps([{"emoji":"🐻","stars":4653},{"emoji":"🎃","stars":1257},{"emoji":"🎃","stars":1257}]), 9, 3800),
+            ]
+            await db.executemany(
+                "INSERT INTO contests (prizes_json, prize_count, participants) VALUES (?, ?, ?)",
+                contests,
+            )
+            await db.commit()
+
+        # Рефанд незакрытых краш-ставок (сервер упал в середине раунда)
+        cur = await db.execute(
+            "SELECT user_id, SUM(amount) as total FROM crash_bets WHERE status = 'active' GROUP BY user_id"
+        )
+        stuck = await cur.fetchall()
+        if stuck:
+            for row in stuck:
+                await db.execute(
+                    "UPDATE users SET balance = balance + ? WHERE id = ?",
+                    (row[1], row[0]),
+                )
+            await db.execute("UPDATE crash_bets SET status = 'refunded' WHERE status = 'active'")
+            await db.commit()
+
+        # Рефанд незавершённых ставок сапёра (сервер упал в середине игры)
+        cur = await db.execute(
+            "SELECT user_id, SUM(amount) as total FROM miner_bets WHERE status = 'active' GROUP BY user_id"
+        )
+        stuck_miner = await cur.fetchall()
+        if stuck_miner:
+            for row in stuck_miner:
+                await db.execute(
+                    "UPDATE users SET balance = balance + ? WHERE id = ?",
+                    (row[1], row[0]),
+                )
+            await db.execute("UPDATE miner_bets SET status = 'refunded' WHERE status = 'active'")
+            await db.commit()
